@@ -1,0 +1,8 @@
+channels:
+- conda-forge
+dependencies:
+- python=3.10.9
+- pip<=22.3.1
+- pip:
+  - mlflow[extras]<3,>=2.1
+name: mlflow
