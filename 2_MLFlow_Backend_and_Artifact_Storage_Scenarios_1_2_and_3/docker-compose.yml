@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+
+    mysql:
+        image: mariadb:10.3
+        container_name: mlflow_mysql_${MYSQL_PORT1}
+        hostname: mlflow_mysql_${MYSQL_PORT1}
+        #restart: unless-stopped
+        env_file:                               # Swarm will load (in the container) both 'env_file' files in the list, not only '.env' by default !!
+            - .env                              # Default '--env-file' option: $ docker-compose up -d
+        ports:
+            - ${MYSQL_PORT1}:3306
+            - ${MYSQL_PORT2}:33060
+        environment:
+            - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/password1
+            - MYSQL_DATABASE=${MYSQL_DATABASE}
+            - MYSQL_USER=${MYSQL_USER}
+            - MYSQL_PASSWORD_FILE=/run/secrets/password2
+        secrets:
+            - password1
+            - password2
+        volumes:
+            - database_volume:/var/lib/mysql     # production configuration (named volume)
+
+    phpmyadmin:
+        image: phpmyadmin:latest
+        container_name: mlflow_phpmyadmin_${PHPMYADMIN_PORT}
+        hostname: mlflow_phpmyadmin_${PHPMYADMIN_PORT}
+        #restart: unless-stopped
+        depends_on:
+            - mysql
+        env_file:                                # Swarm will load (in the container) all 'env_file' files in the list, not only '.env' by default !!
+            - .env                               # Default '--env-file' option: $ docker-compose up -d
+        environment:
+            PMA_HOST: mysql
+            MYSQL_ROOT_PASSWORD_FILE: /run/secrets/password1
+        secrets:
+            - password1
+        ports:
+            - ${PHPMYADMIN_PORT}:80
+
+    mlflow:
+        build:
+          context: ./mlflow
+          dockerfile: Dockerfile
+          #dockerfile: Dockerfile-conda
+          #dockerfile: Dockerfile-conda-dev
+        image: mlflow_tracker_slim
+        container_name: mlflow_tracker_${MLFLOW_PORT}
+        hostname: mlflow_phpmyadmin_${MLFLOW_PORT}
+        #restart: unless-stopped
+        depends_on:
+            - mysql
+        # depends_on:
+        #   wait-for-db:
+        #     condition: service_completed_successfully
+        env_file:                                # Swarm will load (in the container) both 'env_file' files in the list, not only '.env' by default !!
+            - .env                               # Default '--env-file' option: $ docker-compose up -d
+            - .secrets/env-secrets               # Requires '--env-file' option: $ docker-compose --env-file .env-secrets up -d
+        ports:
+            - ${MLFLOW_PORT}:5000
+        #environment:
+            # Remote artifact store: not used in this Ex2
+            # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            # - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            # - AWS_DEFAULT_REGION=${AWS_REGION}
+            # - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
+        volumes:
+            # Artifact store locally available through folder mapping:
+            #- ./mlflow/mlruns:/home/mlflowuser/mlruns
+            - ./mlflow:/mlflow
+
+        #entrypoint: ./mlflow/entrypoint.sh
+        #command: ["/usr/bin/wait-for.sh", "-t", "0", "mysql:${MYSQL_PORT1}", "--", "/docker-entrypoint.sh"]
+
+volumes:
+    database_volume:
+
+secrets:                                         # All secrets are stored in the container under: /run/secrets/
+    password1:                                   # In this case case we use file secrets. External secrets require Swarm ()
+        file: ./.secrets/mysql-root-password.txt
+    password2:
+        file: ./.secrets/mysql-mlflowuser-password.txt
