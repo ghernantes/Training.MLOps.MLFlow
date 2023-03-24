@@ -1,70 +1,77 @@
-# 1. MLflow install and Hello World
+# Optimizing Your Machine Learning Workflow with MLFlow, Docker and Azure. Part 1 - An Overview of MLFlow
 [Go to Root Index](../README.md)
 
-- [1. MLFlow Requirements](#1-mlflow-requirements)
-- [2. MLflow system pip install&run](#2-mlflow-system-pip-installrun)
-    - [2.1 Install the Official MLflow `pip` packages](#21-install-the-official-mlflow-pip-packages)
-    - [2.2 MLflow Tracking UI run](#22-mlflow-tracking-ui-run)
-    - [2.3 Navigating the Tracking UI](#23-navigating-the-tracking-ui)
-- [3. MLflow conda env install and first MLFlow run](#3-mlflow-conda-env-install-and-first-mlflow-run)
-    - [3.1 Create a new conda `mlflow` env and install the Official MLflow `pip` packages](#31-create-a-new-conda-mlflow-env-and-install-the-official-mlflow-pip-packages)
-    - [3.2 MLflow UI run](#32-mlflow-ui-run)
-    - [3.3 Viewing the Tracking UI](#33-viewing-the-tracking-ui)
-- [4. Experiment runs with MLflow Tracking logging](#4-experiment-runs-with-mlflow-tracking-logging)
-    - [4.1 Basic ML Sample App using the Tracking API](#41-basic-ml-sample-app-using-the-tracking-api)
-    - [4.2 Running the mlflow_tracking.py example (Scenario 1)](#42-running-the-mlflow_trackingpy-example-scenario-1)
-    - [4.3 Tracked data folders](#43-tracked-data-folders)
-    - [4.4 Viewing the tracked data using the Tracking UI](#44-viewing-the-tracked-data-using-the-tracking-ui)
+MLFlow is an open-source platform for managing the machine learning lifecycle. It simplifies the process of building, training, and deploying machine learning models by providing a unified framework for tracking experiments, packaging code, and sharing models.
 
-MLflow is a platform to streamline machine learning development, including tracking experiments, packaging code into reproducible runs, and sharing and deploying models. MLflow offers a set of lightweight APIs that can be used with any existing machine learning application or library (TensorFlow, PyTorch, XGBoost, etc), wherever you currently run ML code (e.g. in notebooks, standalone applications or the cloud).
+In this article:
 
-MLflow's current components are:
+- [1. The promise](#1-the-promise)
+- [2. Core components](#2-core-components)
+- [3. Requirements and recommendations](#3-requirements-and-recommendations)
+- [4. MLflow system pip install & UI run](#4-mlflow-system-pip-install--ui-run)
+    - [4.1 System MLflow setup](#41-system-mlflow-setup)
+    - [4.2 Conda env MLflow setup](#42-conda-env-mlflow-setup)
+    - [4.3 MLflow Tracking UI run](#43-mlflow-tracking-ui-run)
+- [5. First MLFlow run with `mlflow.doctor()`](#5-first-mlflow-run-with-mlflowdoctor)
+- [6. Logging runs with MLflow Tracking](#6-logging-runs-with-mlflow-tracking)
+    - [6.1 Basic ML Sample App using the Tracking API](#61-basic-ml-sample-app-using-the-tracking-api)
+    - [6.2 Running the mlflow_tracking.py example (Scenario 1)](#62-running-the-mlflow_trackingpy-example-scenario-1)
+    - [6.3 Tracked data folders](#63-tracked-data-folders)
+    - [6.4 Viewing the tracked data using the Tracking UI](#64-viewing-the-tracked-data-using-the-tracking-ui)
 
-- [MLflow Tracking](https://mlflow.org/docs/latest/tracking.html): An API to log parameters, code, and results in machine learning experiments and compare them using an interactive UI.
-- [MLflow Projects](https://mlflow.org/docs/latest/tracking.html): A code packaging format for reproducible runs using Conda and Docker, so you can share your ML code with others.
-- [MLflow Models](https://mlflow.org/docs/latest/models.html): A model packaging format and tools that let you easily deploy the same model (from any ML library) to batch and real-time scoring on platforms such as Docker, Apache Spark, Azure ML and AWS SageMaker.
-- [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html): A centralized model store, set of APIs, and UI, to collaboratively manage the full lifecycle of MLflow Models.
+## 1. The promise
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
-## 1. MLFlow Requirements
-[Go to Index](#1-mlflow-install-and-hello-world)
+The use of MLFlow can help data scientists work more effectively and efficiently, while also improving the reproducibility and collaboration of machine learning projects. By providing a centralized platform for managing machine learning projects and models, MLFlow can help data scientists spend less time on administrative tasks and more time on solving business problems:
 
-- `Python`
-- MLflow Projects feature requires `conda` to be on the `PATH`.
-- MLflow examples (Optional)
+- **Reproducibility**: One of the biggest challenges in machine learning is reproducing results. MLFlow can help data scientists achieve reproducibility by providing a way to track and manage experiments, including parameters, code versions, and data versions.
 
-    Download the quickstart code in your mlflow `resources` folder, by cloning MLflow github repo via:
+- **Collaboration**: Data science projects often involve collaboration between multiple team members, including data scientists, data engineers, and business stakeholders. MLFlow provides a centralized platform for managing machine learning projects, making it easier for team members to collaborate and share information.
 
-    ```bash
-    $ git clone https://github.com/mlflow/mlflow
-    ```
-    and cd into the `examples` subdirectory of the repository.
+- **Model management**: MLFlow provides a way to manage machine learning models throughout their entire lifecycle, from development to deployment. This can help data scientists keep track of different versions of a model, track performance metrics, and manage model deployment.
 
-    Avoid running directly from our clone of MLflow as doing so would cause the tutorial to use MLflow from source, rather than your PyPi installation of MLflow.
+- **Efficiency**: MLFlow can help data scientists work more efficiently by automating many of the repetitive tasks associated with machine learning, such as managing experiments and tracking model performance. This can free up time for data scientists to focus on more high-level tasks, such as feature engineering and model selection.
 
-## 2. MLflow system pip install&run
-[Go to Index](#1-mlflow-install-and-hello-world)
 
-Create your own `project/poc` folder, and `cd` into it. You can create a copy of this `1_MLFlow_on_localhost_Basic_Install` repo folder. I will refer to it as `poc1` to abbreviate.
+## 2. Core components
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
-```bash
-$ cd poc1
-$ tree .
-.
-├── README.md
-├── conda.yaml
-├── examples
-│   └── quickstart
-│       └── mlflow_tracking.py
-├── images
-│   ├── mlflow_ui_run_detail.png
-│   └── mlflow_ui_run_list.png
-└── mlflow_doctor.py
-```
+At its core, MLFlow consists of three components:
 
-System installs are common in servers or in dockerized systems. In your personal machine, and for your `poc1` training folder, you normally would better [create a `conda` or `venv` environment where to install `mlflow` and its dependencies](#3-mlflow-conda-env-installrun). We present first the generic way of installing MLflow for clarity.
+- **Tracking**: Allows you to track experiments and compare the performance of different runs. You can log parameters, metrics, and artifacts (such as model checkpoints) for each run, and view them in a centralized UI.
 
-### **2.1 Install the Official MLflow `pip` packages**
-[Go to Index](#1-mlflow-install-and-hello-world)
+- **Projects**: Enables you to package your code into reusable projects with a consistent structure. You can specify the dependencies, entry points, and parameters for your projects, and easily run them on different environments (such as your local machine or a remote server).
+
+- **Models**: Helps you to package and deploy your models in a standardized format. You can register models with versioned names, add metadata (such as the model's performance metrics), and deploy them to different deployment targets (such as a REST API or a serverless function).
+
+MLFlow is language-agnostic, which means you can use it with any programming language and machine learning framework. It supports popular frameworks like TensorFlow, PyTorch, Scikit-Learn, and XGBoost, as well as cloud platforms like AWS, Azure, and GCP.
+
+In summary, MLFlow provides a simple and scalable way to manage your machine learning projects. It helps you to keep track of your experiments, organize your code, and deploy your models in a reproducible and standardized way. If you're looking to streamline your machine learning workflow and collaborate with other data scientists, MLFlow is definitely worth checking out!
+
+
+## 3. Requirements and recommendations
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
+
+To use MLFlow, you will need to meet some basic requirements, which include:
+
+- Install **Python**: MLFlow runs on Python, so you will need to have Python installed on your system. MLFlow is compatible with Python 3.5 or higher.
+- Install a **development environment**: You can use any development environment you like, such as Jupyter Notebook, PyCharm, or Visual Studio Code. The last is my personal preference, and you will see several captures of it in this article.
+- Install **machine learning libraries**: Depending on the machine learning frameworks you want to use with MLFlow, you will need to install the corresponding libraries, such as TensorFlow, PyTorch, or Scikit-Learn.
+- Install **MLFlow**: You can install MLFlow using the pip package manager. Once installed, you can use the MLFlow command-line interface to create projects, run experiments, and manage your models.
+
+In addition to these basic requirements, it is also recommended:
+
+- **Conda** as the tool for managing the Python development environment in which MLFlow is pip installed.
+- Some knowledge of **Python programming**, and
+- **ML** model/projects lifecycle management.
+
+
+## 4. MLflow system pip install & UI run
+
+As usual, you can install MLFlow together with your system python (not advisable, mostly for container deployments), in a folder in your local project folder (with venv or similar) or in a shared and isolated folder with conda.
+
+### **4.1 System MLflow setup**
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
 Install MLflow from `PyPI` via:
 
@@ -84,41 +91,47 @@ Or you can install a lower dependency subset of MLflow from `PyPI` via:
 $ pip install mlflow-skinny
 ```
 
-**MLflow skinny**
+### **4.2 Conda env MLflow setup**
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
-When using MLflow skinny, you may need to install additional dependencies if you wish to use certain MLflow modules and functionalities.
-
-For example:
-
-```bash
-$ pip install mlflow-skinny pandas numpy
-```
-Usage of SQL-based storage for MLflow Tracking (e.g. mlflow.set_tracking_uri("sqlite:///my.db")) requires:
+In your terminal, `pip install mlflow` as before, but this time with a new `mlflow` conda env created  activated:
 
 ```bash
-$ pip install mlflow-skinny sqlalchemy alembic sqlparse
-````
-
-If using MLflow skinny for serving, a minimally functional installation would require:
-
-```
-$ pip install mlflow-skinny flask
+$ conda create -n mlflow python=3.10
+$ conda activate mlflow
+(mlflow)$
+(mlflow)$ pip install mlflow
 ```
 
-allows for `mlflow.pyfunc.log_model` support.
+Or using a conda yaml file:
 
-> **Note:**
->
-> To use certain MLflow modules and functionality (ML model persistence/inference, artifact storage options, etc), you may need to install extra> libraries. For example, the `mlflow.tensorflow` module requires TensorFlow to be installed. See https://github.com/mlflow/mlflow/blob/master> EXTRA_DEPENDENCIES.rst for more details.
+```bash
+$ conda env create --name mlflow --file=conda.yaml
+$ conda activate mlflow
+(mlflow)$
+```
 
-### **2.2 MLflow Tracking UI run**
-[Go to Index](#1-mlflow-install-and-hello-world)
+Where the `conda.yaml` file is something like:
 
-You can then run MLflow’s Tracking UI with `mlflow ui`:
+```yaml
+channels:
+- conda-forge
+dependencies:
+- python=3.10.9
+- pip<=22.3.1
+- pip:
+  - mlflow[extras]<3,>=2.1
+name: mlflow
 
 ```
-$ cd /poc1
-$ mlflow ui
+
+### **4.3 MLflow Tracking UI run**
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
+
+After installed and with the conda env activated, you can run MLflow’s Tracking UI with `mlflow ui`:
+
+```
+(mlflow)$ mlflow ui
 [2023-02-24 10:48:08 +0100] [6330] [INFO] Starting gunicorn 20.1.0
 [2023-02-24 10:48:08 +0100] [6330] [INFO] Listening at: http://127.0.0.1:5000 (6330)
 [2023-02-24 10:48:08 +0100] [6330] [INFO] Using worker: sync
@@ -128,36 +141,34 @@ $ mlflow ui
 [2023-02-24 10:48:08 +0100] [6334] [INFO] Booting worker with pid: 6334
 ```
 
-You can finish the `mlflow ui` execution with `ctrl^c` at any time.
+View it in your browser at: [http://localhost:5000](http://localhost:5000)
 
-By default, wherever you run your ml program, the tracking API writes data into files into a local `./mlruns` directory.
-
-### **2.3 Navigating the Tracking UI**
-[Go to Index](#1-mlflow-install-and-hello-world)
-
-View it at: [http://localhost:5000](http://localhost:5000)
-
-> **Note:**
->
-> If you see message [CRITICAL] WORKER TIMEOUT in the MLflow UI or error logs, try using [http://localhost:5000](http://localhost:5000) instead of [http://127.0.0.1:5000](http://127.0.0.1:5000).
+You can finish the `mlflow ui` execution with `ctrl^c` at any time. For the moment let this terminal running and open another terminal to follow with the article.
 
 
+## 5. First MLFlow run with `mlflow.doctor()`
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
-## 3. MLflow conda env install and first MLFlow run
+With the default MLFlow configuration, wherever you run your machine learning program, the tracking API will write all tracked data in files into a local `./mlruns` directory. Let's track this data in our own `project/poc` folder.
 
-### **3.1 Create a new conda `mlflow` env and install the Official MLflow `pip` packages**
-[Go to Index](#1-mlflow-install-and-hello-world)
-
-In a first terminal, `pip install mlflow` as before, but this time with your new `mlflow` conda env activated:
+Create your `project/poc` folder, and `cd` into it. You can also clone the companion repo for this article, an make a copy of this `1_MLFlow_on_localhost_Basic_Install` repo folder. I will refer to it as `poc1` to abbreviate.
 
 ```bash
-$ conda create -n mlflow python=3.10
-$ conda activate mlflow
-(mlflow)$
-(mlflow)$ pip install mlflow
+$ cd poc1
+$ tree .
+.
+├── README.md
+├── conda.yaml
+├── examples
+│   └── quickstart
+│       └── mlflow_tracking.py
+├── images
+│   ├── mlflow_ui_run_detail.png
+│   └── mlflow_ui_run_list.png
+└── mlflow_doctor.py
 ```
 
-Quickly check your `mlflow` install with `mlflow_doctor.py`:
+Our first MLFlow run will be carried out by `mlflow_doctor.py`:
 
 ```python
 import mlflow
@@ -166,7 +177,7 @@ with mlflow.start_run():
     mlflow.doctor()
 ```
 
-When we run that code we should have something like:
+`mlflow.doctor()` function quickly check your `mlflow` install. When we call it, it returns something like:
 
 ```bash
 (mlflow)$ python mlflow_doctor.py
@@ -226,7 +237,7 @@ Observe how our folder tree has changed:
 ├── images
 │   ├── ...
 ├── mlflow_doctor.py
-└── mlruns
+└── mlruns                                         # <-- Created
     └── 0
         ├── f819730ed25d4c888100050277850ab7
         │   ├── artifacts
@@ -246,49 +257,27 @@ Observe how our folder tree has changed:
 (mlflow)$
 ```
 
-To check everuthing is ok, MLFlow doctor has created a first dummy run for us. If we launch MLFlow UI, we can navigate the former folder tree, and get the details of that run.
+To check everything is ok, MLFlow doctor has created a first dummy run for us. If you update the MLFlow UI page running in the browser, we can navigate the former folder tree, and get the details of that run.
 
-### **3.2 MLflow UI run**
-[Go to Index](#1-mlflow-install-and-hello-world)
-
-In a second terminal, you can run MLflow’s Tracking UI with `mlflow ui`:
-
-```
-(mlflow)$ cd /poc1
-(mlflow)$ mlflow ui
-[2023-02-24 10:48:08 +0100] [6330] [INFO] Starting gunicorn 20.1.0
-[2023-02-24 10:48:08 +0100] [6330] [INFO] Listening at: http://127.0.0.1:5000 (6330)
-[2023-02-24 10:48:08 +0100] [6330] [INFO] Using worker: sync
-[2023-02-24 10:48:08 +0100] [6331] [INFO] Booting worker with pid: 6331
-[2023-02-24 10:48:08 +0100] [6332] [INFO] Booting worker with pid: 6332
-[2023-02-24 10:48:08 +0100] [6333] [INFO] Booting worker with pid: 6333
-[2023-02-24 10:48:08 +0100] [6334] [INFO] Booting worker with pid: 6334
-```
-
-Finish the execution with `ctrl^c`.
-
-By default, wherever you run your ml program, the tracking API writes data into files into a local `./mlruns` directory.
-
-### **3.3 Viewing the Tracking UI**
-[Go to Index](#1-mlflow-install-and-hello-world)
-
-View it at: [http://localhost:5000](http://localhost:5000)
 
 <p align='left'>
     <img src='./images/mlflow_ui_run_list_after_mlflow_doctor.png' alt='' width=1200>
 </p>
+
+Click on the first run "handsome-goose-822" to get all run tracked info. For the moment that track is empty:
+
 <p align='left'>
     <img src='./images/mlflow_ui_run_detail_after_mlflow_doctor.png' alt='' width=1200>
 </p>
 
 
 
-## 4. Experiment runs with MLflow Tracking logging
+## 6. Logging runs with MLflow Tracking
 
-### **4.1 Basic ML Sample App using the Tracking API**
-[Go to Index](#1-mlflow-install-and-hello-world)
+### **6.1 Basic ML Sample App using the Tracking API**
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
-MLflow Tracking basic usage is as follows:
+MLflow Tracking API basic usage is as follows:
 
 ```python
 import mlflow                                           # implements the MLflow Tracking client API
@@ -307,21 +296,22 @@ with mlflow.start_run():
     mlflow.tensorflow.log_model(model)                  # trained model preserved
 ```
 
-**MlFlow tracking** is implemented by means of an **MLFlow client**-**MLFlow server** pair:
+**MlFlow tracking** is implemented through the use of an **MLFlow client**-**MLFlow server** pair:
 
-- The **MLFlow client** implements the former `log_param(), log_metric() and log_artifacts()` function calls, which are part of the API known as the **MLflow Tracking API**.
-- The **MLFlow client** can then communicate to the **MLFlow server**, depending on how the env variable `MLFLOW_TRACKING_URL` is configured for the client.
+- The **MLFlow client** is responsible for implementing the `log_param()`, `log_metric()`, and `log_artifacts()` function calls, which are part of the API known as the **MLflow Tracking API**.
+- Depending on how the `MLFLOW_TRACKING_URL` environment variable is configured for the client, the **MLFlow client** may optionally communicate with the **MLFlow server**.
 
-The former sample code makes use of the **MLflow Tracking API**, which logged tracking data is stored:
+The sample code provided utilizes the **MLflow Tracking API** to store logged tracking data:
 
-- locally in `./mlruns` folder by default (a.k.a scenario 1): `MLFLOW_TRACKING_URL` env variable contains `./mlruns` by default, or
-- locally in `mlruns.db` SQLite database file (a.k.a scenario 2): by changing the default configuration of the env variable `MLFLOW_TRACKING_URL` to `mlruns.db`, or
-- locally/remotelly when a tracking server **url** is defined by the env variable  (a.k.a scenarios 3-6): `MLFLOW_TRACKING_URL` env variable can be something like `http://localhost:5000` or `http://your/remote/host:5000`. Because the tracking server can be run locally or remotelly, so is the tracking data stored by it.
+- By default, the tracking data is stored locally in the `./mlruns` folder (referred to as scenario 1 in the MLFlow documentation), i.e. the `MLFLOW_TRACKING_URL` environment variable is set to `./mlruns` by default.
+- The default configuration of the `MLFLOW_TRACKING_URL` environment variable can be changed to store the data in the `mlruns.db` SQLite database file (referred to as scenario 2).
+- When a tracking server URL is defined by the `MLFLOW_TRACKING_URL` environment variable, the tracking data can be stored locally or remotely, depending on the scenario (referred to as scenarios 3-6). The MLFLOW_TRACKING_URL environment variable may be set to something like `http://localhost:5000` or `http://your/remote/host:5000`. The tracking server can be run locally or remotely, and the tracking data stored by it can also be local or remote.
 
-Alternatively to the `MLFLOW_TRACKING_URL` env variable, you can change the MLFlow tracking uri by using the MLflow Tracking client API call `mlflow.set_tracking_uri()`.
+In addition to using the `MLFLOW_TRACKING_URL` environment variable, you can also modify the MLFlow tracking URI by using the MLflow Tracking client API call `mlflow.set_tracking_uri()`.
 
-### **4.2 Running the `mlflow_tracking.py` example (Scenario 1)**
-[Go to Index](#1-mlflow-install-and-hello-world)
+
+### **6.2 Running the `mlflow_tracking.py` example (Scenario 1)**
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
 The `mlflow_tracking.py` example code is as follows:
 
@@ -363,12 +353,12 @@ Current tracking uri: ./mlruns
 (mlflow)$
 ```
 
-This ML Sample App makes use of the MLflow Tracking client API, which logs tracking data in `./mlruns`.
+This sample ML application utilizes the MLflow Tracking client API to log tracking data in the `./mlruns` directory.
 
-This logs can then be viewed with the Tracking UI. The tracking UI is the part of the Tracking service that navigates and presents to the user all tracked data for every training run.
+These logs can be viewed through the Tracking UI, which is a component of the Tracking service that allows users to navigate and view all tracked data for each training run.
 
-### **4.3 Tracked data folders**
-[Go to Index](#1-mlflow-install-and-hello-world)
+### **6.3 Tracked data folders**
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
 In this scenario 1, each tracked run data is in a guid folder under `mlruns/0`. Here `0` is the default experiment.
 
@@ -418,8 +408,8 @@ $ tree .
 17 directories, 27 files
 ```
 
-### **4.4 Viewing the tracked data using the Tracking UI**
-[Go to Index](#1-mlflow-install-and-hello-world)
+### **6.4 Viewing the tracked data using the Tracking UI**
+[Go to Index](#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
 The Tracking UI is a website that navigates all tracked data and artifacts, that as you know, in this Scenario 1 are under the `./mlruns` folder.
 
@@ -438,17 +428,22 @@ Now in your web browser open: [http://localhost:5000](http://localhost:5000)
 
 > **Note:**
 >
-> All runs will be grouped under the `Default` experiment.
+> Initially, all runs are grouped under the Default experiment. You can optionally group runs into new experiments, having together all runs for a specific task.
 >
-> You can optionally organize runs into experiments, which group together runs for a specific task. You can create an experiment using the:
-> - `mlflow experiments` CLI,
-> - with `mlflow.create_experiment()`, or
-> - using the corresponding REST parameters.
+> You can create an experiment using the MLFlow UI web app or in your code with the mlflow.create_experiment() API function.
+>
+> Additionaly, you can use the `mlflow experiments` CLI command, using the corresponding REST parameters.
 
-Both, MLflow API and MLFlow UI, let you create and search for experiments and runs.
+Both, MLflow API and MLFlow UI, will let you search for experiments and runs too.
 
 You can get the last run details clicking at `masked-show-660`:
 
 <p align='left'>
     <img src='./images/mlflow_ui_run_detail_after_mlflow_tracking.png' alt='' width=1200>
 </p>
+
+## 7. Summary
+
+As you can see, installing and setting up MLFlow is straightforward through pip and conda. It includes a comprehensive UI for tracking experiments and runs, which is easy to launch. To quickly check the setup, you can perform a dummy run using the mlflow.doctor() function. You can find your first basic ML Sample App instrumented for the Tracking API in the GitHub repository for this article.
+
+In summary, MLFlow is a powerful tool that simplifies the workflow in Machine Learning. Its user-friendly interface and core components allow Data Scientists and ML engineers to collaborate easily, track and manage their Machine Learning projects, streamline workflows, save time, and improve the overall quality of their work.
