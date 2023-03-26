@@ -43,36 +43,25 @@ services:
     mlflow:
         build:
           context: ./mlflow
-          dockerfile: Dockerfile
-          #dockerfile: Dockerfile-conda
-          #dockerfile: Dockerfile-conda-dev
+          dockerfile: Dockerfile                 # to build a root image with a system pip install of mlflow
+          #dockerfile: Dockerfile-conda          # to build a non-root image with a tailored conda env for mlflow
         image: mlflow_tracker_slim
         container_name: mlflow_tracker_${MLFLOW_PORT}
         hostname: mlflow_phpmyadmin_${MLFLOW_PORT}
         #restart: unless-stopped
         depends_on:
             - mysql
-        # depends_on:
-        #   wait-for-db:
-        #     condition: service_completed_successfully
         env_file:                                # Swarm will load (in the container) both 'env_file' files in the list, not only '.env' by default !!
             - .env                               # Default '--env-file' option: $ docker-compose up -d
             - .secrets/env-secrets               # Requires '--env-file' option: $ docker-compose --env-file .env-secrets up -d
         ports:
             - ${MLFLOW_PORT}:5000
-        #environment:
-            # Remote artifact store: not used in this Ex2
-            # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-            # - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-            # - AWS_DEFAULT_REGION=${AWS_REGION}
-            # - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
         volumes:
             # Artifact store locally available through folder mapping:
-            #- ./mlflow/mlruns:/home/mlflowuser/mlruns
             - ./mlflow:/mlflow
-
-        #entrypoint: ./mlflow/entrypoint.sh
-        #command: ["/usr/bin/wait-for.sh", "-t", "0", "mysql:${MYSQL_PORT1}", "--", "/docker-entrypoint.sh"]
+        #command: ./entrypoint.sh                # replaces the CMD line in Dockerfile
+        command: ./entrypoint-pip-dev.sh         # only for the image built with Dockerfile
+        #command: ./entrypoint-conda-dev.sh      # only for the image built with Dockerfile-conda
 
 volumes:
     database_volume:

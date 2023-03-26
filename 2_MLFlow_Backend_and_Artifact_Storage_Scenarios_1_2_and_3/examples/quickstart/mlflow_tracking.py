@@ -7,7 +7,7 @@ if __name__ == "__main__":
     #mlflow.set_tracking_uri("./mlruns")                     # Scenario 1
     #mlflow.set_tracking_uri("sqlite:///mlruns.db")          # Scenario 2
     #mlflow.set_tracking_uri("http://localhost:5000")        # Scenario 3
-    mlflow.set_tracking_uri("http://localhost:5007")        # Scenario 4
+    #mlflow.set_tracking_uri("http://localhost:5007")        # Scenario 4
 
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     outputs_fullpath = os.path.join(current_working_dir, outputs_dir)
     if not os.path.exists(outputs_fullpath):
         os.makedirs(outputs_fullpath)
-        print(f"Directory '{outputs_dir}' created")
+        print(f"Temporal directory '{outputs_dir}' created")
 
     with open(os.path.join(outputs_fullpath, "test.txt"), "w") as f:
         f.write("hello world!")
@@ -45,10 +45,10 @@ if __name__ == "__main__":
         try:
             os.remove(os.path.join(outputs_fullpath, "test.txt"))
             os.rmdir(outputs_fullpath)
-            print(f"Directory '{outputs_dir}' has been removed successfully")
+            print(f"Temporal directory '{outputs_dir}' has been removed successfully")
         except OSError as error:
             print(error)
-            print(f"Directory '{outputs_dir}' can not be removed")
+            print(f"Temporal directory '{outputs_dir}' can not be removed")
 
 # 1. Launch your tracking server: ---------------------------------------------------
 # Open a terminal in Ex2 folder and run:
