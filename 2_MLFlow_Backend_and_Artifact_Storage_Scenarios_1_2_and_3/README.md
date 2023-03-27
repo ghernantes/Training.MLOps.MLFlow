@@ -1,41 +1,44 @@
-# 2. MLFlow Backend and Artifact Storage. Scenarios 1, 2 and 3
+# 2. MLflow Backend and Artifact Storage. Scenarios 1, 2 and 3
 [Go to Root Index](../README.md)
 
-- [1. Introduction](./README.md#1-introduction)
-- [2. Scenario 1: MLFlow Client tracking. No HTTP Tracking server. ('MLFLOW_TRACKING_URI="file:///tmp/my_tracking"')](./README.md#2-scenario-1-mlflow-client-tracking-no-http-tracking-server-mlflow_tracking_urifiletmpmy_tracking)
-  - [2.1 Set the MLFlow Client's 'Backend store' and 'Artifacts store'](./README.md#21-set-the-mlflow-clients-backend-store-and-artifacts-store)
+- [1. The parts: Client and Server; Backend and Artifact stores](./README.md#1-the-parts-client-and-server-backend-and-artifact-stores)
+- [2. Scenario 1: MLflow Client tracking to folders. No HTTP Tracking server. ('MLFLOW_TRACKING_URI="file:///tmp/my_tracking"')](./README.md#2-scenario-1-mlflow-client-tracking-to-folders-no-http-tracking-server-mlflow_tracking_urifiletmpmy_tracking)
+  - [2.1 Set the MLflow Client's 'Backend store' and 'Artifacts store'](./README.md#21-set-the-mlflow-clients-backend-store-and-artifacts-store)
   - [2.2 Launch the 'mlflow UI' server](./README.md#22-launch-the-mlflow-ui-server)
   - [2.3 The 'quickstart' example under Scenario 1](./README.md#23-the-quickstart-example-under-scenario-1)
-- [3. Scenario 2: MLFlow Client tracking. No HTTP Tracking server. ('MLFLOW_TRACKING_URI="sqlite:///mlruns.db"')](./README.md#3-scenario-2-mlflow-client-tracking-no-http-tracking-server-mlflow_tracking_urisqlitemlrunsdb)
-  - [3.1 Set the MLFlow Client's 'Backend store' in a local SQLite database and 'Artifacts store' in a local folder](./README.md#31-set-the-mlflow-clients-backend-store-in-a-local-sqlite-database-and-artifacts-store-in-a-local-folder)
+- [3. Scenario 2: MLflow Client tracking to SQLite. No HTTP Tracking server. ('MLFLOW_TRACKING_URI="sqlite:///mlflow.db"')](./README.md#3-scenario-2-mlflow-client-tracking-to-sqlite-no-http-tracking-server-mlflow_tracking_urisqlitemlflowdb)
+  - [3.1 Set the MLflow Client's 'Backend store' in a local SQLite database and 'Artifacts store' in a local folder](./README.md#31-set-the-mlflow-clients-backend-store-in-a-local-sqlite-database-and-artifacts-store-in-a-local-folder)
   - [3.2 Launch the 'mlflow UI' server](./README.md#32-launch-the-mlflow-ui-server)
   - [3.3 The 'quickstart' example under Scenario 2](./README.md#33-the-quickstart-example-under-scenario-2)
-- [4. Scenario 3: MLFlow Client + Server  tracking ('MLFLOW_TRACKING_URI="http://localhost:5003"')](./README.md#4-scenario-3-mlflow-client--http-tracking-server-mlflow_tracking_urihttplocalhost5003)
-  - [4.1 Set HTTP Tracking server's 'Backend store' and the MLFlow Client's 'Artifacts store' locally](./README.md#41-set-http-tracking-servers-backend-store-and-the-mlflow-clients-artifacts-store-locally)
-  - [4.2 Launch a new local MLFlow Tracking server (Scenario 3b)](./README.md#42-launch-a-new-local-mlflow-tracking-server-scenario-3b)
+- [4. Scenario 3: MLflow Client + HTTP Server tracking ('MLFLOW_TRACKING_URI="http://localhost:5003"')](./README.md#4-scenario-3-mlflow-client--http-tracking-server-mlflow_tracking_urihttplocalhost5003)
+  - [4.1 Set HTTP Tracking server's 'Backend store' and the MLflow Client's 'Artifacts store' locally](./README.md#41-set-http-tracking-servers-backend-store-and-the-mlflow-clients-artifacts-store-locally)
+  - [4.2 Launch a new local MLflow Tracking server (Scenario 3b)](./README.md#42-launch-a-new-local-mlflow-tracking-server-scenario-3b)
   - [4.3 The 'quickstart' example  under Scenario 3b](./README.md#43-the-quickstart-example-under-scenario-3b)
 - [5. Execute the 'Palmer pinguins' example under Scenario 3b](./README.md#5-execute-the-palmer-pinguins-example-under-scenario-3b)
   - [5.1 Notebook 1_Run_and_track_experiments.ipynb](./README.md#51-notebook-1_run_and_track_experimentsipynb)
   - [5.2 Notebook 2_Deploy_and_manage.ipynb](./README.md#52-notebook-2_deploy_and_manageipynb)
   - [5.3 Notebook 3_Tips_and_tricks.ipynb](./README.md#53-notebook-3_tips_and_tricksipynb)
+- [6. Summary](./README.md#7-summary)
 
-You can access the article code on the following GitHub repository::
+You can access the article code on the following GitHub repository:
 
 [https://github.com/ghernantes/Training.MLOps.MLFlow/blob/main/2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3](https://github.com/ghernantes/Training.MLOps.MLFlow/blob/main/2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3)
 
-## 1. Introduction
+<img src='./examples/quickstart/img/Mr_robot_presenting_the_basic_scenarios_of_MLflow.png' alt='' width='800'>
+
+## 1. The parts: Client and Server; Backend and Artifact stores
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
-MlFlow is implemented by means of an **MLFlow client-server** pair. This architecture is designed to provide a scalable and efficient way of managing machine learning workflows. The **server** provides a centralized location for storing and managing **experiment data**, **model artifacts**, and other resources, while the **client** provides a **command-line interface** (CLI) and **API** for interacting with the server. This separation of concerns allows for multiple users and teams to **collaborate** on machine learning projects, while ensuring that all data and resources are **securely** managed and accessible. Additionally, the client-server architecture provides a flexible framework for **integrating** MlFlow with other tools and services, enabling users to **build end-to-end machine learning pipelines** that incorporate multiple stages of model development, testing, and deployment.
+MlFlow is implemented by means of an **MLflow client-server** pair. This architecture is designed to provide a scalable and efficient way of managing machine learning workflows. The **server** provides a centralized location for storing and managing **experiment data**, **model artifacts**, and other resources, while the **client** provides a **command-line interface** (CLI) and **API** for interacting with the server. This separation of concerns allows for multiple users and teams to **collaborate** on machine learning projects, while ensuring that all data and resources are **securely** managed and accessible. Additionally, the client-server architecture provides a flexible framework for **integrating** MlFlow with other tools and services, enabling users to **build end-to-end machine learning pipelines** that incorporate multiple stages of model development, testing, and deployment.
 
 Specifically, in [part 1 of this series of articles](../1_MLFlow_Install_and_Hello_World/README.md#61-basic-ml-sample-app-using-the-tracking-api) we have already make use of:
-- The **MLFlow client** implements the `log_param(), log_metric() and log_artifacts()` function calls we have seen . These functions are part of the API known as the **MLflow Tracking API**.
-- The **MLFlow client** can then **optionally** communicate to the **MLFlow server**, depending on how the env variable `MLFLOW_TRACKING_URL` is configured for the client.
+- The **MLflow client** implements the `log_param(), log_metric() and log_artifacts()` function calls we have seen . These functions are part of the API known as the **MLflow Tracking API**.
+- The **MLflow client** can then **optionally** communicate to the **MLflow server**, depending on how the env variable `MLFLOW_TRACKING_URL` is configured for the client.
 
-MLFlow also offers two storage components: the **Backend store** and the **Artifact store**. The backend store persists MLFlow entities like runs, parameters, metrics, and metadata, while the artifact store stores artifacts such as files, models, images, and in-memory objects. The `AbstractStore` and `ArtifactRepository` are the respective abstract classes that define how to work with these stores. The `FileStore`, `RestStore`, and `SQLAlchemyStore` are examples of concrete implementations of the `AbstractStore` class, while the `LocalArtifactRepository`, `AzureBlobArtifactRepository`, and `S3ArtifactRepository` are concrete implementations of the `ArtifactRepository` class:
+MLflow also offers two storage components: the **Backend store** and the **Artifact store**. The backend store persists MLflow entities like runs, parameters, metrics, and metadata, while the artifact store stores artifacts such as files, models, images, and in-memory objects. The `AbstractStore` and `ArtifactRepository` are the respective abstract classes that define how to work with these stores. The `FileStore`, `RestStore`, and `SQLAlchemyStore` are examples of concrete implementations of the `AbstractStore` class, while the `LocalArtifactRepository`, `AzureBlobArtifactRepository`, and `S3ArtifactRepository` are concrete implementations of the `ArtifactRepository` class:
 
 - The **Backend store**:
-  - persists MLFlow entities (runs, parameters, metrics, tags, notes, metadata, etc)
+  - persists MLflow entities (runs, parameters, metrics, tags, notes, metadata, etc)
   - implementation:
     - `AbstractStore` abstract class .
     - `FileStore`, `RestStore`, and `SQLAlchemyStore` are concrete implementations of the abstract class `AbstractStore`.
@@ -45,7 +48,7 @@ MLFlow also offers two storage components: the **Backend store** and the **Artif
     - `ArtifactRepository`abstract class .
     - `LocalArtifactRepository`, `AzureBlobArtifactRepository` and `S3ArtifactRepository` are concrete implementations of the abstract class `ArtifactRepository`.
 
-Depending on how you configure the storage of your MLFlow client and/or server instances, you will have several scenarios. In this article/lab, you can practice the 3 most basic scenarios. To do that, create your own `project/poc` folder, and `cd` into it. I recommend that you make a copy of the [2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3 repository folder](https://github.com/ghernantes/Training.MLOps.MLFlow/tree/main/2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3) and follow along with the article's hands-on exercises. For brevity, I will refer to the copied folder as **`lab2`**.
+Depending on how you configure the storage of your MLflow client and/or server instances, you will have several scenarios. In this article/lab, you can practice the 3 most basic scenarios. To do that, create your own `project/poc` folder, and `cd` into it. I recommend that you make a copy of the [2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3 repository folder](https://github.com/ghernantes/Training.MLOps.MLFlow/tree/main/2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3) and follow along with the article's hands-on exercises. For brevity, I will refer to the copied folder as **`lab2`**.
 
 Open three different terminals under `lab2`:
 
@@ -102,20 +105,20 @@ We have two examples:
 Let's run first the Quickstar example under those three basic scenarios:
 
 - **Scenario 1**: client tracking on folders: with `MLFLOW_TRACKING_URI="./mlruns"` (No HTTP Tracking server)
-- **Scenario 2**: client tracking on database, such as SQLite: with `MLFLOW_TRACKING_URI="sqlite:///mlruns.db"` (No HTTP Tracking server)
+- **Scenario 2**: client tracking on database, such as SQLite: with `MLFLOW_TRACKING_URI="sqlite:///mlflow.db"` (No HTTP Tracking server)
 - **Scenario 3**: server tracking on folders/database: with `MLFLOW_TRACKING_URI="http://localhost:5000"')
 
-## 2. Scenario 1: MLFlow Client tracking. No HTTP Tracking server. ('MLFLOW_TRACKING_URI="file:///tmp/my_tracking"')
+## 2. Scenario 1: MLflow Client tracking to folders. No HTTP Tracking server. (`MLFLOW_TRACKING_URI="file:///tmp/my_tracking"`)
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
 In this scenario:
 
-- The **MLFlow client** directly interfaces with an instance of a `FileStore` and `LocalArtifactRepository`
-- Both, **backend store** and **artifact store**, share a directory on the (local) filesystem: `./mlruns`, and
+- The **MLflow client** directly interfaces with an instance of a `FileStore` and `LocalArtifactRepository`
+- Both, **backend store** and **artifact store**, share a directory on the (local) filesystem: `./mlruns`
 
 <img src='./examples/quickstart/img/scenario_1.png' alt='' width='380'>
 
-### **2.1 Set the MLFlow Client's 'Backend store' and 'Artifacts store'**
+### **2.1 Set the MLflow Client's 'Backend store' and 'Artifacts store'**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
 To set your backend and artifacts stores locally, use:
@@ -144,7 +147,7 @@ We can launch locally the mlflow UI server with:
 $ mlflow ui --port 5001
 ```
 
-This launches a **'MLFlow UI server'** at http://127.0.0.1:5001 with the following default backend and artifact store configuration:
+This launches a **'MLflow UI server'** at http://127.0.0.1:5001 with the following default backend and artifact store configuration:
 
 ```bash
 mlflow ui --backend-store-uri ./mlruns --default-artifact-root ./mlruns--host 0.0.0.0 --port 5001
@@ -219,7 +222,7 @@ mlflow
 └── requirements.txt
 ```
 
-This `mlruns` folder is now monitored by our running **'MLFlow UI server'** running on **terminal 2**, and published on [http://localhost:5001](http://localhost:5001).
+This `mlruns` folder is now monitored by our running **'MLflow UI server'** running on **terminal 2**, and published on [http://localhost:5001](http://localhost:5001).
 
 <img src='./examples/quickstart/img/mlflow_ui_default_runs_list.png' alt='' width='1000'>
 
@@ -241,9 +244,9 @@ Artifacts in 'examples/quickstart/outputs' tracked!
 Temporal directory 'examples/quickstart/outputs' has been removed successfully
 ```
 
-In this simple scenario, the MLFlow client uses the following interfaces to record MLFlow entities and artifacts:
+In this simple scenario, the MLflow client uses the following interfaces to record MLflow entities and artifacts:
 
-- An instance of a `FileStore` (to save MLFlow entities)
+- An instance of a `FileStore` (to save MLflow entities)
 - An instance of a `LocalArtifactRepository` (to store artifacts)
 
 Now, our `lab2/mlflow/mlruns` has a new experiment `395173098808783198` and a new run `d918463610894225b2c5d3856ba06870`.
@@ -277,34 +280,34 @@ mlflow
     └── models
 ```
 
-Have a look at the **'MLFlow UI server'** to see how it played out!
+Have a look at the **'MLflow UI server'** to see how it played out!
 
 <img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario1_runs_list.png' alt='' width='1000'>
 
 <img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario1_first_run_details.png' alt='' width='1000'>
 
-Tracked parameters and metrics are easy to inspect. Artifacts can be inspected and downloaded too. All information is organized around a clean and usable interface, grouped by experiments and runs.
+As you can see, tracked parameters and metrics are easy to inspect. Artifacts can be inspected and downloaded too. All information is organized around a clean and usable interface, grouped by experiments and runs.
 
-## 3. Scenario 2: MLFlow Client tracking. No HTTP Tracking server. (`MLFLOW_TRACKING_URI="sqlite:///mlruns.db"`)
+## 3. Scenario 2: MLflow Client tracking to SQLite. No HTTP Tracking server. (`MLFLOW_TRACKING_URI="sqlite:///mlflow.db"`)
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
 In this scenario:
 
-- The **MLFlow client** directly interfaces with:
+- The **MLflow client** directly interfaces with:
   - an instance of a `SQLAlchemyStore`.
-      - **Backend store**: MLFlow entities are inserted in a (local) SQLite database file `mlruns.db`
+      - **Backend store**: MLflow entities are inserted in a (local) SQLite database file `mlflow.db`
   - an instance of `LocalArtifactRepository`.
       - **Artifact store**: artifacts are stored under the (local) `./mlruns` directory
 
 
 <img src='./examples/quickstart/img/scenario_2.png' alt='' width='380'>
 
-### **3.1 Set the MLFlow Client's 'Backend store' in a local SQLite database and 'Artifacts store' in a local folder**
+### **3.1 Set the MLflow Client's 'Backend store' in a local SQLite database and 'Artifacts store' in a local folder**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
 To set your backend and artifacts stores:
 
-- Instrument your training code by using: `mlflow.set_tracking_uri("sqlite:///mlruns.db")`
+- Instrument your training code by using: `mlflow.set_tracking_uri("sqlite:///mlflow.db")`
 
  ```python
  import os
@@ -312,17 +315,17 @@ To set your backend and artifacts stores:
  from mlflow import set_tracking_uri, get_tracking_uri, log_metric, log_param, log_artifacts
 
  if __name__ == "__main__":
-     set_tracking_uri("sqlite:///mlruns.db")   # backend store: SQLite database local file ./mlruns.db
+     set_tracking_uri("sqlite:///mlflow.db")   # backend store: SQLite database local file ./mlflow.db
                                                # artifacts store: artifacts are stored under the local ./mlruns directory
  ...
  ```
-- Alternativelly, set and export the environment variable: `MLFLOW_TRACKING_URI="sqlite:///mlruns.db"` where the training code is executed.
+- Alternativelly, set and export the environment variable: `MLFLOW_TRACKING_URI="sqlite:///mlflow.db"` where the training code is executed.
 
 You specify a database-backed store as SQLAlchemy database URI. The database SQLAlchemy URI typically takes the format:
 
 `<dialect>+<driver>://<username>:<password>@<host>:<port>/<database>`
 
-- dialect: MLFlow supports the database dialects mysql, mssql, sqlite, and postgresql.
+- dialect: MLflow supports the database dialects mysql, mssql, sqlite, and postgresql.
 - driver: is optional. If you do not specify a driver, SQLAlchemy uses a dialect’s default driver.
 
 More info at: https://mlflow.org/docs/latest/tracking.html#scenario-2-mlflow-on-localhost-with-sqlite
@@ -334,10 +337,10 @@ More info at: https://mlflow.org/docs/latest/tracking.html#scenario-2-mlflow-on-
 We can launch locally the mlflow UI server with:
 
 ```bash
-$ mlflow ui --backend-store-uri sqlite:///mlruns.db --port 5002
+$ mlflow ui --backend-store-uri sqlite:///mflow.db --port 5002
 ```
 
-This launches an **'MLFlow UI server'** at http://127.0.0.1:5002 with the following **'MLFlow Client'** backend and artifact store configuration.
+This launches an **'MLflow UI server'** at http://127.0.0.1:5002 with the following **'MLflow Client'** backend and artifact store configuration:
 
 ```bash
 $ mlflow ui --backend-store-uri sqlite:///mflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port 5002
@@ -413,10 +416,10 @@ mlflow
 │   │   │       └── mlflow.user
 │   │   └── meta.yaml
 │   └── models
-└── mlruns.db    <- This SQLite database file is created.
+└── mlflow.db    <- This SQLite database file is created.
 ```
 
-Observe how the `mflow.db` SQLite database file has been created under the `mlflow` folder. In this Scenario 2, this database is used directly by the **MLFlow Client**, through the `SQLAlchemyStore` interface.
+Observe how the `mflow.db` SQLite database file has been created under the `mlflow` folder. In this Scenario 2, this database is used directly by the **MLflow Client**, through the `SQLAlchemyStore` interface.
 
 ### **3.3 The 'quickstart' example under Scenario 2**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
@@ -439,14 +442,14 @@ Artifacts in 'examples/quickstart/outputs' tracked!
 Temporal directory 'examples/quickstart/outputs' has been removed successfully
 ```
 
-In this simple scenario, the **MLFlow Client** uses the following interfaces to record MLFlow entities and artifacts:
+In this simple scenario, the **MLflow Client** uses the following interfaces to record MLflow entities and artifacts:
 
-- An instance of a `SQLAlchemyStore` (to save MLFlow entities)
+- An instance of a `SQLAlchemyStore` (to save MLflow entities)
 - An instance of a `LocalArtifactRepository` (to store artifacts)
 
 Now, our `lab2/mlflow/mlruns` folder has a new experiment `1` and a new run `73b821edb9f54f82a72ec44fac9ff171`, containing the logged artifacts for that run.
 
-Additionally, the `lab2/mlflow/mlruns.db` SQLite database file has been used to track MLFlow entities, including the parameters and metrics of that `73b821edb9f54f82a72ec44fac9ff171` run.
+Additionally, the `lab2/mlflow/mlflow.db` SQLite database file has been used to track MLflow entities, including the parameters and metrics of that `73b821edb9f54f82a72ec44fac9ff171` run.
 
 Move to **terminal 1** and run `tree mlflow` again:
 
@@ -479,10 +482,10 @@ mlflow
 │   │   │       └── mlflow.user
 │   │   └── meta.yaml
 │   └── models
-└── mlruns.db
+└── mlflow.db
 ```
 
-Have a look at the **'MLFlow UI server'** to see how it played out!
+Have a look at the **'MLflow UI server'** to see how it played out!
 
 <img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario2_runs_list.png' alt='' width='1000'>
 
@@ -490,7 +493,7 @@ Have a look at the **'MLFlow UI server'** to see how it played out!
 
 **Note:**
 
-Because the **MLFlow Client** is now using the `SQLAlchemyStore` interface and SQLite as Backend store, all runs performed with `FileStore` in Scenario 1 are not available in our **MLFlow UI**. To recover those runs, just launch again the ui service on **terminal 2** with:
+Because the **MLflow Client** is now using the `SQLAlchemyStore` interface and SQLite as Backend store, all runs performed with `FileStore` in Scenario 1 are not available in our **MLflow UI**. To recover those runs, just launch again the ui service on **terminal 2** with:
 
 ```bash
 mlflow ui
@@ -502,32 +505,32 @@ or
 mlflow ui --backend-store-uri mlruns/ --default-artifact-root mlruns/ --host 0.0.0.0 --port 5001
 ```
 
-## 4. Scenario 3: MLFlow Client + HTTP Tracking server ('MLFLOW_TRACKING_URI="http://localhost:5003"')
+## 4. Scenario 3: MLflow Client + HTTP Tracking server ('MLFLOW_TRACKING_URI="http://localhost:5003"')
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
 In this scenario:
 
-- The **MLFlow client** directly interfaces with:
+- The **MLflow client** directly interfaces with:
     - an instance of `LocalArtifactRepository`.
       - the **Artifact Store** is under `./mlruns/` folder), and
-    - an instance of `RestStore` to reach the **MLFlow Tracking server**
+    - an instance of `RestStore` to reach the **MLflow Tracking server**
 
-- The **MLFlow Tracking server**:
+- The **MLflow Tracking server**:
     - interfaces with (depending on the specified configuration):
       -  an instance of `FileStore`:
           - the **Backend Store** is under `./mlruns/` folder (Scenario 3a), or
       -  an instance of `SQLAlchemyStore`:
-          - the **Backend Store** is in `mlruns.db` SQLite database file (Scenario 3b)
+          - the **Backend Store** is in `mlflow.db` SQLite database file (Scenario 3b)
     - artifact serving is disabled (by using `--no-serve-artifacts` option)
 
 <img src='./examples/quickstart/img/scenario_3.png' alt='' width='520'>
 
-### **4.1 Set HTTP Tracking server's 'Backend store' and the MLFlow Client's 'Artifacts store' locally**
+### **4.1 Set HTTP Tracking server's 'Backend store' and the MLflow Client's 'Artifacts store' locally**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
 To set your backend and artifacts stores:
 
-- First, tell the **MLFlow client** that will work together with an **MLFlow HTTP tracking server**:
+- First, tell the **MLflow client** that will work together with an **MLflow HTTP tracking server**:
   - Instrumenting the training code with: `mlflow.set_tracking_uri("http://my-tracking-server:5003")`
     ```python
     import os
@@ -540,7 +543,7 @@ To set your backend and artifacts stores:
     ```
   - Or setting and exporting the environment variable: `MLFLOW_TRACKING_URI="http://localhost:5003"` where the training code is executed.
 
-- Then, launch the **MLFlow HTTP tracking server** with:
+- Then, launch the **MLflow HTTP tracking server** with:
 
   ```bash
   mlflow server \                               # Scenario 3a:
@@ -554,7 +557,7 @@ To set your backend and artifacts stores:
 
   ```bash
   mlflow server \                               # Scenario 3b:
-  --backend-store-uri sqlite:///mlruns.db \     # backend store: SQLite database local file ./mlruns.db
+  --backend-store-uri sqlite:///mlflow.db \     # backend store: SQLite database local file ./mlflow.db
   --default-artifact-root ./mlruns \            # artifacts store: artifacts are stored under the local ./mlruns directory
   --no-serve-artifacts \
   --host 0.0.0.0 --port 5003
@@ -570,7 +573,7 @@ More info at: https://mlflow.org/docs/latest/tracking.html#scenario-3-mlflow-on-
 #mlflow.set_tracking_uri("databricks://<profileName>")
 
 
-### **4.2 Launch a new local MLFlow Tracking server (Scenario 3b)**
+### **4.2 Launch a new local MLflow Tracking server (Scenario 3b)**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
 Open **terminal 2** and stop any service (`Ctrl+c`) running under `lab2/mlflow`.
@@ -595,9 +598,9 @@ NOTE: If `mflow.db` is still there, it will be reused. If not, the process db fi
 ### **4.3 The 'quickstart' example under Scenario 3b**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
-Move to terminal 3. The mlflow conda env should be still activated, and the working directory should be lab2/mlflow.
+Move to terminal 3. The mlflow conda env should be still activated, and the working directory should be `lab2/mlflow`.
 
-Under this folder run mlflow_tracking.py again, but this time change the MLFLOW_TRACKING_URI as in the following code:
+Under this folder run `mlflow_tracking.py` again, but this time change the `MLFLOW_TRACKING_URI` as in the following code:
 
 ```bash
 $ conda activate mlflow
@@ -613,6 +616,13 @@ Temporal directory 'examples/quickstart/outputs' has been removed successfully
 ```
 
 ## 5. Execute the 'Palmer pinguins' example under Scenario 3b
+[Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
+
+In this case, we will illustrate how to track a real-world training example involving the classification of three types of penguins: Adelie, Gentoo, and Chinstrap. The problem at hand requires using features that are based on the culmen measurement of these penguins:
+
+<img src='./examples/quickstart/img/pinguins_dataframe.png' alt='' width='420'>
+
+Data were collected and made available by Dr. Kristen Gorman and the Palmer Station, Antarctica LTER, a member of the Long Term Ecological Research Network. It provides a great dataset for data exploration & visualization, as an alternative to the iris dataset.
 
 ### **5.1 Notebook `1_Run_and_track_experiments.ipynb`**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
@@ -680,3 +690,18 @@ Open the following notebook:
 [./examples/palmer_pinguins/notebooks/3_Tips_and_tricks.ipynb](./examples/palmer_pinguins/notebooks/3_Tips_and_tricks.ipynb)
 
 and execute it.
+
+## 7. Summary
+[Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
+
+The article presents a step-by-step guide on how to set up MLflow in three different scenarios.
+
+In **Scenario 1**, the guide explains how to set up the **default** 'Backend store' and 'Artifacts store' of the MLflow Client and launches the MLflow UI server. Additionally, the guide presents the 'quickstart' example in this scenario.
+
+Moving on to **Scenario 2**, the guide demonstrates how to set up the MLflow Client's 'Backend store' in a local **SQLite database** and 'Artifacts store' in a local folder. As with Scenario 1, the MLflow UI server is launched, and the 'quickstart' example is also included.
+
+**Scenario 3** covers the setup of the **MLflow Client and Server tracking pair**. Both the 'Backend store' and 'Artifacts store' are configured locally, and a new local MLFlow Tracking server is launched. Under Scenario 3b, the guide again provides the 'quickstart' example.
+
+**Finally**, we show how to execute the **'Palmer penguins' example under Scenario 3b** using `Notebook 1_Run_and_track_experiments.ipynb`.
+
+In the next issue we will explain how to dockerize the tracking server we used for Scenario 3b.
