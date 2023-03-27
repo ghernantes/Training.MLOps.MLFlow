@@ -20,6 +20,12 @@ In this article:
     - [6.4 Viewing the tracked data using the Tracking UI](./README.md#64-viewing-the-tracked-data-using-the-tracking-ui)
 - [7. Summary](./README.md#7-summary)
 
+Find the article code in the following GitHub repository:
+
+[https://github.com/ghernantes/Training.MLOps.MLFlow/tree/main/1_MLFlow_Install_and_Hello_World](https://github.com/ghernantes/Training.MLOps.MLFlow/tree/main/1_MLFlow_Install_and_Hello_World)
+
+<img src='./images/Two_robots_finetuning_models_with_MLflow.png' alt='' width='800'>
+
 ## 1. The promise
 [Go to Index](./README.md#optimizing-your-machine-learning-workflow-with-mlflow-docker-and-azure-part-1---an-overview-of-mlflow)
 
