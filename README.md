@@ -34,6 +34,4 @@
         - [4.3 The 'quickstart' example  under Scenario 3b](./2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3/README.md#43-the-quickstart-example-under-scenario-3b)
     - [5. Execute the 'Palmer pinguins' example under Scenario 3b](./2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3/README.md#5-execute-the-palmer-pinguins-example-under-scenario-3b)
         - [5.1 Notebook 1_Run_and_track_experiments.ipynb](./2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3/README.md#51-notebook-1_run_and_track_experimentsipynb)
-        - [5.2 Notebook 2_Deploy_and_manage.ipynb](./2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3/README.md#52-notebook-2_deploy_and_manageipynb)
-        - [5.3 Notebook 3_Tips_and_tricks.ipynb](./2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3/README.md#53-notebook-3_tips_and_tricksipynb)
     - [6. Summary](./2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3/README.md#7-summary)
