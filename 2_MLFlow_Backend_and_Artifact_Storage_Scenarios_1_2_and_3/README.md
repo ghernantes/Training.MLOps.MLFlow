@@ -16,6 +16,7 @@
   - [4.3 The 'quickstart' example  under Scenario 3b](./README.md#43-the-quickstart-example-under-scenario-3b)
 - [5. Execute the 'Palmer pinguins' example under Scenario 3b](./README.md#5-execute-the-palmer-pinguins-example-under-scenario-3b)
   - [5.1 Notebook 1_Run_and_track_experiments.ipynb](./README.md#51-notebook-1_run_and_track_experimentsipynb)
+  - [5.2 Tracking training code and model with MLflow.](./README.md#52-tracking-training-code-and-model-with-mlflow)
 - [6. Summary](./README.md#7-summary)
 
 You can access the article code on the following GitHub repository:
@@ -613,6 +614,14 @@ Artifacts in 'examples/quickstart/outputs' tracked!
 Temporal directory 'examples/quickstart/outputs' has been removed successfully
 ```
 
+Have a look at the **'MLflow UI server'** to see how it played out!
+
+<img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario3_runs_list.png' alt='' width='1000'>
+
+<img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario3_first_run_details.png' alt='' width='1000'>
+
+Once again, we have managed to track parameters, metrics and a dummy artifact 'test.txt'.
+
 ## 5. Execute the 'Palmer pinguins' example under Scenario 3b
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
@@ -625,51 +634,109 @@ Data were collected and made available by Dr. Kristen Gorman and the Palmer Stat
 ### **5.1 Notebook `1_Run_and_track_experiments.ipynb`**
 [Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
 
-Open the following notebook:
+Open and run all cells in the following notebook:
 
 [./examples/palmer_pinguins/notebooks/1_Run_and_track_experiments.ipynb](./examples/palmer_pinguins/notebooks/1_Run_and_track_experiments.ipynb)
 
-and execute it. You will have:
+The instrumented training code used for the last run in this notebook is as follows:
+
+```python
+mlflow.set_experiment(exp_name)                                                                    # <-- Set the experiment we want to track to
+
+with mlflow.start_run() as run:                                                                    # <-- Start a run of the experiment
+    print(f"Started run {run.info.run_id}")
+    # Load dataset
+    print("Load dataset...")
+    culmen_columns = ["Culmen Length (mm)", "Culmen Depth (mm)"]
+    target_column = "Species"
+
+    data_path = "../data/penguins_classification.csv"
+    data = pd.read_csv(data_path)
+    mlflow.log_param("num_samples", data.shape[0])                                                 # <-- Track the number of samples in the dataset
+
+    # Prepare a train-test-split
+    print("Prepare a train-test-split...")
+    data, target = data[culmen_columns], data[target_column]
+    data_train, data_test, target_train, target_test = train_test_split(
+        data, target, random_state=0)
+
+    # Initialize and fit a classifier
+    max_depth = 3
+    max_leaf_nodes = 4
+    print(f"Initialize and fit a DecisionTreeClassifier with max_depth={max_depth}, max_leaf_nodes{max_leaf_nodes}")
+
+    mlflow.log_params(                                                                             # <-- Track parameters
+        {"max_depth": max_depth,
+         "max_leaf_nodes": max_leaf_nodes}
+    )
+    tree = DecisionTreeClassifier(
+        max_depth=max_depth,
+        max_leaf_nodes=max_leaf_nodes
+    )
+    tree.fit(data_train, target_train)
+
+    # Calculate test scores
+    test_score = tree.score(data_test, target_test)
+    mlflow.log_metric("test_accuracy", test_score)                                                 # <-- Track metrics
+    print(f"Result: Accuracy of the DecisionTreeClassifier: {test_score:.1%}")
+
+    # Track artifacts
+    os.chdir("../../../mlflow")                                                                    # Change the current working directory to the same path the tracking server was executed:
+    print(f"Current working directory temporaly moved to: {os.getcwd()}")
+
+    mlflow.log_artifact("../examples/palmer_pinguins/notebooks/1_Run_and_track_experiments.ipynb") # <-- Track the source code of the notebook
+    print(f"Notebook '1_Run_and_track_experiments.ipynb' stored in: {run.info.artifact_uri}")
+
+    # Log the model
+    mlflow.sklearn.log_model(tree, "model")                                                        # <-- Log the model
+    print(f"Model stored in: {run.info.artifact_uri}/model")
+
+    os.chdir("../examples/palmer_pinguins/notebooks")                                              # Change the current working directory to its original position
+    print(f"Current working directory: {os.getcwd()}")
+```
+
+### **5.2 Tracking training code and model with MLflow**
+[Go to Index](#2-mlflow-backend-and-artifact-storage-scenarios-1-2-and-3)
+
+After executing it completely, move to **terminal 1** an type `tree mlflow`. You will have the following folder structure:
 
 ```bash
-tree .
-.
-├── README.md
+$ tree mlflow
+mlflow
+├── ...
 ├── examples
-│   ├── palmer_pinguins
-│   │   ├── data
-│   │   │   └── penguins_classification.csv
-│   │   ├── notebooks
-│   │   │   ├── 1_Run_and_track_experiments.ipynb
-│   │   │   ├── 2_Deploy_and_manage.ipynb
-│   │   │   └── 3_Tips_and_tricks.ipynb
-│   │   └── resources
-│   │       ├── culmen_depth.png
-│   │       ├── mlflow_ui_pinguins_experiment_first_run_details.png
-│   │       ├── mlflow_ui_pinguins_experiment_runs_list.png
-│   │       ├── palmer_penguins.png
-│   │       └── tracking_setup.png
-│   └── quickstart
-│       ├── mlflow_tracking.py
-│       └── outputs
-│           └── test.txt
+│   └── quickstart
 ├── mflow.db
-└── mlruns
-    ├── 1
-    │   └── 2f4534550a1c41188a94dd99d7035923
-    │       └── artifacts
-    │           └── test.txt
-    └── 2
-        └── 0e316a57136a4e6d878ec53a7a78f18e
-            └── artifacts
-                └── 1_Run_and_track_experiments.ipynb
+├── mlruns
+│   ├── 1
+│   │   └── 001d3acc26f64968ab1901578f65cfeb
+│   │       └── artifacts
+│   │           └── test.txt
+│   └── 2
+│       ├── 1720bf243bfe45e09d006afc1d4659d3
+│       │   └── artifacts
+│       │       └── 1_Run_and_track_experiments.ipynb
+│       └── 8b52015be19d42cebf8b609b8ccb1042
+│           └── artifacts
+│               ├── 1_Run_and_track_experiments.ipynb
+│               └── model
+│                   ├── MLmodel
+│                   ├── conda.yaml
+│                   ├── model.pkl
+│                   ├── python_env.yaml
+│                   └── requirements.txt
+└── requirements.txt
 ```
+
+In the notebook we have executed three runs. Only the two last produced artifacts, which were registered under the folder `.\mlflow\mlruns\2\`.
 
 Have a look at the tracking UI to see how it played out!
 
-<img src='./examples/palmer_pinguins/img/mlflow_ui_pinguins_experiment_runs_list_2.png' alt='' width='1000'>
+<img src='./examples/palmer_pinguins/img/mlflow_ui_pinguins_experiment_runs_list_3_with_model.png' alt='' width='1000'>
 
-<img src='./examples/palmer_pinguins/img/mlflow_ui_pinguins_experiment_first_run_details_2.png' alt='' width='1000'>
+Observe how in this final example, we have tracked not only parameters and metrics, but the notebook itself that produced the tracked metric, as well as the trained model produced by the run.
+
+<img src='./examples/palmer_pinguins/img/mlflow_ui_pinguins_experiment_run_details_3_with_model.png' alt='' width='1000'>
 
 
 ## 7. Summary
@@ -683,6 +750,6 @@ Moving on to **Scenario 2**, the guide demonstrates how to set up the MLflow Cli
 
 **Scenario 3** covers the setup of the **MLflow Client and Server tracking pair**. Both the 'Backend store' and 'Artifacts store' are configured locally, and a new local MLFlow Tracking server is launched. Under Scenario 3b, the guide again provides the 'quickstart' example.
 
-**Finally**, we show how to execute the **'Palmer penguins' example under Scenario 3b** using `Notebook 1_Run_and_track_experiments.ipynb`.
+**Finally**, we show how to execute the **'Palmer penguins' example under Scenario 3b** using `Notebook 1_Run_and_track_experiments.ipynb`. In this final example, we have tracked not only parameters and metrics, but the notebook itself that produced the tracked metric, as well as the trained model produced by the run.
 
 In the next issue we will explain how to dockerize the tracking server we used for Scenario 3b.
