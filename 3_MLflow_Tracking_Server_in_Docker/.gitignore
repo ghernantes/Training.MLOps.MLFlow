@@ -1,0 +1,18 @@
+_Resources
+
+# Secrets ---------------------
+
+## Uncomment in real scenarios !!
+# .secrets/*
+# *.key
+# *key.pem
+
+# Volumes ---------------------
+
+db/.docker_volumes/*
+
+# MLflow ----------------------
+
+mlruns
+outputs
+mlflow/mflow.db
