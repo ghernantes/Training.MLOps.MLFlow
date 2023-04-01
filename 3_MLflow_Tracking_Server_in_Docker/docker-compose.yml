@@ -43,9 +43,10 @@ services:
     mlflow:
         build:
           context: ./mlflow
-          dockerfile: Dockerfile                 # to build a root image with a system pip install of mlflow
+          dockerfile: Dockerfile-as-gustavo      # to build a non-root image with a system pip install of mlflow
           #dockerfile: Dockerfile-conda          # to build a non-root image with a tailored conda env for mlflow
-        image: mlflow_tracker_slim
+        image: mlflow_tracker_slim_as_gustavo
+        #image: mlflow_tracker_conda             # This image may be unnecessarily large.
         container_name: mlflow_tracker_${MLFLOW_PORT}
         hostname: mlflow_phpmyadmin_${MLFLOW_PORT}
         #restart: unless-stopped
@@ -58,11 +59,9 @@ services:
             - ${MLFLOW_PORT}:5000
         volumes:
             # Artifact store locally available for the mlflow server through folder mapping:
-            #- /home/gustavo/training/GitHub/Training.MLOps.MLFlow/3_MLflow_Tracking_Server_in_Docker/mlflow:/home/mlflowuser/mlflow/
-            - /home/gustavo/mlflow:/home/gustavo/mlflow
-        #command: ./entrypoint.sh                # replaces the CMD line in Dockerfile
-        #command: ./entrypoint-pip-dev.sh         # only for the image built with Dockerfile
-        #command: ./entrypoint-conda-dev.sh      # only for the image built with Dockerfile-conda
+            - /home/gustavo/mlflow/mlruns:/home/gustavo/mlflow/mlruns                                    # --> Replicate folder structure in the host and in the container
+                                                                                                         #     and map those two folders to have a working Artifact Storage.
+            # - /home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab/mlflow:/home/mlflowuser/mlflow/  # --> This will NOT work
 
 volumes:
     database_volume:

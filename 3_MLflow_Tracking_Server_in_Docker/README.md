@@ -1,15 +1,20 @@
 # 3. Move your MLflow Tracking server to Docker
 [Go to Root Index](../README.md)
 
-- [1. What are the Benefits of Dockerizing an MLflow Tracking Server?](./README.md#1-what-are-the-benefits-of-dockerizing-an-mlflow-tracking-server)
-- [2. Building a basic Docker image for MLflow](#2-building-a-basic-docker-image-for-mlflow)
-- [3. Using MariaDB as Tracking Backend Storage](#3-using-mariadb-as-tracking-backend-storage)
-- [4. Creating the Docker stack for MLflow](#4-creating-the-docker-stack-for-mlflow)
-- [5. Dockerized Scenario 3b: MLflow Client + Dockerized HTTP Tracking server ('MLFLOW_TRACKING_URI="http://localhost:5005"'](#5-dockerized-scenario-3b-mlflow-client--dockerized-http-tracking-server-mlflow_tracking_urihttplocalhost5005)
-    - [5.1 Set HTTP Tracking server's 'Backend store' and the MLflow Client's 'Artifacts store'](#51-set-http-tracking-servers-backend-store-and-the-mlflow-clients-artifacts-store)
-    - [5.2 Launch a new Dockerized MLflow Tracking server (Scenario 3b)](#52-launch-a-new-dockerized-mlflow-tracking-server-scenario-3b)
-    - [5.3 The 'quickstart' example under Scenario 3b](#53-the-quickstart-example-under-scenario-3b)
-- [6. Building a non-root Docker image for MLflow and installing depencies with conda](#6-building-a-non-root-docker-image-for-mlflow-and-installing-depencies-with-conda)
+- [1. Introduction](./README.md#1-introduction)
+    - [1.1 Scenarios 3 and 3b](./README.md#11-scenarios-3-y-3b)
+    - [1.2 What are the Benefits of Dockerizing an MLflow Tracking Server?](./README.md#12-what-are-the-benefits-of-dockerizing-an-mlflow-tracking-server)
+- [2. Building a basic Docker image for MLflow](./README.md#2-building-a-basic-docker-image-for-mlflow)
+    - [2.1 A basic Docker image: `Dockerfile-as-root`](./README.md#21-a-basic-docker-image-dockerfile-as-root)
+    - [2.2 A better Docker image: `Dockerfile-as-user`](./README.md#22-a-better-docker-image-dockerfile-as-user)
+    - [2.3 An alternative Docker image: `Dockerfile-conda`](./README.md#23-an-alternative-docker-image-dockerfile-conda)
+- [3. Using MariaDB as Tracking Backend Storage](./README.md#3-using-mariadb-as-tracking-backend-storage)
+- [4. Creating a Docker stack for MLflow](./README.md#4-creating-a-docker-stack-for-mlflow)
+- [5. Dockerized Scenario 3b: MLflow Client + Dockerized HTTP Tracking server ('MLFLOW_TRACKING_URI="http://localhost:5005"'](./README.md#5-dockerized-scenario-3b-mlflow-client--dockerized-http-tracking-server-mlflow_tracking_urihttplocalhost5005)
+    - [5.1 Set HTTP Tracking server's 'Backend store' and the MLflow Client's 'Artifacts store'](./README.md#51-set-http-tracking-servers-backend-store-and-the-mlflow-clients-artifacts-store)
+    - [5.2 Launch a new Dockerized MLflow Tracking server (Scenario 3b)](./README.md#52-launch-a-new-dockerized-mlflow-tracking-server-scenario-3b)
+    - [5.3 The 'quickstart' example under Scenario 3b](./README.md#53-the-quickstart-example-under-scenario-3b)
+- [6. Building a non-root Docker image for MLflow and installing depencies with conda](./README.md#6-building-a-non-root-docker-image-for-mlflow-and-installing-depencies-with-conda)
 - [7. Summary](./README.md#7-summary)
 
 You can access the article code on the following GitHub repository:
@@ -18,8 +23,15 @@ You can access the article code on the following GitHub repository:
 
 <img src='./examples/quickstart/img/Mr_robot_presenting_the_basic_scenarios_of_MLflow.png' alt='' width='800'>
 
-## 1. What are the Benefits of Dockerizing an MLflow Tracking Server?
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+## 1. Introduction.
+
+### **1.1 Scenarios 3 y 3b**
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
+
+<img src='./examples/quickstart/img/scenario_3.png' alt='' width='480'> <img src='./examples/quickstart/img/scenario_3b.png' alt='' width='480'>
+
+### **1.2 What are the Benefits of Dockerizing an MLflow Tracking Server?**
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 Docker offers a range of benefits that are well-known. Let's take a quick look at the advantages of dockerizing an MLflow tracking server:
 
@@ -33,15 +45,20 @@ Docker offers a range of benefits that are well-known. Let's take a quick look a
 Overall, Dockerizing an MLflow tracking server can simplify deployment, improve scalability, and provide a consistent and isolated environment for running the server.
 
 
+## 2. Building a Docker image for MLflow
 
-## 2. Building a basic Docker image for MLflow
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+### **2.1 A basic Docker image: `Dockerfile-as-root`**
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-This section proposes a `Dockerfile` that can be used as a starting point for building a basic Docker image for MLflow:
+This is a `Dockerfile` that can be used as a starting point for building a basic Docker image for MLflow:
 
 ```Dockerfile
+# Good practice: Use official base images
+#
 FROM python:3.10-slim
 
+# Good practice: upgrade distro packages (with last security patches).
+#
 RUN apt-get update && apt-get -y upgrade \
     && pip install --upgrade pip \
     && pip --version
@@ -49,14 +66,20 @@ RUN apt-get update && apt-get -y upgrade \
 RUN apt-get update && apt-get install -y procps \
     && rm -rf /var/lib/apt/lists/*
 
+# Install mlflow dependencies:
+#
 WORKDIR /mlflow/
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && rm requirements.txt
 
+# Expose mlflow ports
+#
 EXPOSE 5000
 
+# Launch the mlflow server
+#
 CMD mlflow server --backend-store-uri ${BACKEND_STORE_URI} \
                   --default-artifact-root ${DEFAULT_ARTIFACT_ROOT} \
                   --artifacts-destination ${DEFAULT_ARTIFACTS_DESTINATION} \
@@ -64,7 +87,7 @@ CMD mlflow server --backend-store-uri ${BACKEND_STORE_URI} \
                   --host 0.0.0.0 --port 5000
 ```
 
-Use official base images whenever possible, as they are well-maintained and typically have smaller image sizes. The Dockerfile begins by using a slim version of Python 3.10 as the base image. Slim versions are stripped-down versions that contain only the essential components needed to run Python 3.10. This results in image sizes that are even smaller, which in turn consume fewer resources (CPU, memory, and disk space). Additionally, slim versions have a reduced attack surface, making them less vulnerable to security threats. All of these benefits lead to faster image build times, quicker deployments, and improved portability across different environments due to fewer dependencies and compatibility issues.
+Some good practices implemented in this `Dockerfile` are the following. Use official base images whenever possible, as they are well-maintained and typically have smaller image sizes. The Dockerfile begins by using a slim version of Python 3.10 as the base image. Slim versions are stripped-down versions that contain only the essential components needed to run Python 3.10. This results in image sizes that are even smaller, which in turn consume fewer resources (CPU, memory, and disk space). Additionally, slim versions have a reduced attack surface, making them less vulnerable to security threats. All of these benefits lead to faster image build times, quicker deployments, and improved portability across different environments due to fewer dependencies and compatibility issues.
 
 It is generally a good idea to update all packages of the Linux distribution used as a base image when writing a Dockerfile. This helps ensure that the image is built with the latest security patches and bug fixes. However, it is important to consider the implications of updating all packages. For example, updating certain packages could introduce compatibility issues with the application being built, or could result in the image being larger in size than necessary. Additionally, updating packages can increase the build time for the image. Thus, it is important to find a balance between updating packages and maintaining image size and compatibility. One way to ensure this is to thoroughly test the image by running multiple training experiments to confirm the expected behavior of your tacking server before tagging the image it as a stable version.
 
@@ -90,44 +113,246 @@ Lastly, the command to be executed when the container starts is specified with `
 To build the image, you can use:
 
 ```bash
-$ docker build -t mlflow_tracker_slim .
+$ docker build -f Dockerfile-as-root -t mlflow_tracker_slim_as_root .
 
-[+] Building 1.5s (11/11) FINISHED
- => [internal] load build definition from Dockerfile                                                                       0.0s
- => => transferring dockerfile: 27.25kB                                                                                    0.0s
- => [internal] load .dockerignore                                                                                          0.0s
- => => transferring context: 171B                                                                                          0.0s
- => [internal] load metadata for docker.io/library/python:3.10-slim                                                        1.3s
- => [1/6] FROM docker.io/library/python:3.10-slim@sha256:7b0a5cefbcdd085faa21533c21549e55a7e66f5aed40f8d1f4de13a017e352cd  0.0s
- => [internal] load build context                                                                                          0.0s
- => => transferring context: 64B                                                                                           0.0s
- => CACHED [2/6] RUN apt-get update && apt-get -y upgrade     && pip install --upgrade pip     && pip --version            0.0s
- => CACHED [3/6] RUN apt-get update && apt-get install -y procps     && rm -rf /var/lib/apt/lists/*                        0.0s
- => CACHED [4/6] WORKDIR /mlflow/                                                                                          0.0s
- => CACHED [5/6] COPY requirements.txt .                                                                                   0.0s
- => CACHED [6/6] RUN pip install --no-cache-dir -r requirements.txt     && rm requirements.txt                             0.0s
- => exporting to image                                                                                                     0.0s
- => => exporting layers                                                                                                    0.0s
- => => writing image sha256:ed76b0b423ec158937a32de523ce2392eb155283116a39d8f45607f56aa479d4                               0.0s
- => => naming to docker.io/library/mlflow_tracker_slim                                                                     0.0s
+[+] Building 1.2s (11/11) FINISHED
+ => [internal] load build definition from Dockerfile-as-root                                                                0.0s
+ => => transferring dockerfile: 27.11kB                                                                                     0.0s
+ => [internal] load .dockerignore                                                                                           0.1s
+ => => transferring context: 35B                                                                                            0.0s
+ => [internal] load metadata for docker.io/library/python:3.10-slim                                                         1.0s
+ => [1/6] FROM docker.io/library/python:3.10-slim@sha256:7b0a5cefbcdd085faa21533c21549e55a7e66f5aed40f8d1f4de13a017e352cd   0.0s
+ => [internal] load build context                                                                                           0.0s
+ => => transferring context: 37B                                                                                            0.0s
+ => CACHED [2/6] RUN apt-get update && apt-get -y upgrade     && pip install --upgrade pip     && pip --version             0.0s
+ => CACHED [3/6] RUN apt-get update && apt-get install -y procps     && rm -rf /var/lib/apt/lists/*                         0.0s
+ => CACHED [4/6] WORKDIR /mlflow/                                                                                           0.0s
+ => CACHED [5/6] COPY requirements.txt .                                                                                    0.0s
+ => CACHED [6/6] RUN pip install --no-cache-dir -r requirements.txt     && rm requirements.txt                              0.0s
+ => exporting to image                                                                                                      0.0s
+ => => exporting layers                                                                                                     0.0s
+ => => writing image sha256:c80c138b84b83b811a413a62aa846bd14e9698346289e486b023227bcb0b94dc                                0.0s
+ => => naming to docker.io/library/mlflow_tracker_slim_as_root
 ```
 
 To obtain more information about the building process and to ensure that cached layers are not used, I typically include the `--progress plain` and `--no-cache options` respectively:
 
 ```bash
-$ docker build --progress plain --no-cache -t mlflow_tracker_slim .
+$ docker build -f Dockerfile-as-root --progress plain --no-cache -t mlflow_tracker_slim_as_root .
 ```
 
-Find the complete log of the previous command at the end of the [`Dockerfile`](./mlflow/Dockerfile)
+Find the complete log of this `docker build` at the end of the [`Dockerfile-as-root`](./mlflow/Dockerfile-as-root) file.
+
+### **2.2 A better Docker image: `Dockerfile-as-user`**
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
+
+In this updated version, the mlflow server will not operate under the root user within the container. Instead, it will run as a new user.
+
+```Dockerfile
+# Good practice: Use official base images
+#
+FROM python:3.10-slim
+
+# Good practice: upgrade distro packages (with last security patches).
+#
+RUN apt-get update && apt-get -y upgrade \
+    && pip install --upgrade pip \
+    && pip --version
+
+RUN apt-get update && apt-get install -y procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Good practice: don't run things in containers as root.
+#
+RUN groupadd mlflow && useradd --create-home -g mlflow gustavo
+ENV PATH /home/gustavo/.local/bin:${PATH}
+
+# Good practice: install the app under the appuser home folder:
+#
+WORKDIR /home/gustavo/mlflow/
+
+# From now on, this process is owned by gustavo:
+#
+USER gustavo
+
+# Install mlflow dependencies:
+#
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose mlflow ports
+#
+EXPOSE 5000
+
+CMD mlflow server --backend-store-uri ${BACKEND_STORE_URI} --default-artifact-root ${DEFAULT_ARTIFACT_ROOT} --artifacts-destination ${DEFAULT_ARTIFACTS_DESTINATION} --no-serve-artifacts --host 0.0.0.0 --port 5000
+```
+
+In this second version, **the container will not run the mlflow server as root**. When a process runs as the root user, it has the highest level of access and permissions within the container, which means that it can potentially perform dangerous operations or modify important files and directories. If a container is compromised, an attacker can use the root-level access to execute malicious code or modify the container's filesystem. This can lead to a variety of security vulnerabilities, including data breaches, system compromise, and the unauthorized access of resources.
+
+To mitigate these risks, it's recommended to run processes within Docker containers as non-root users with limited permissions. This way, even if an attacker gains access to the container, they will have limited privileges and will not be able to perform critical operations or modify important files.
+
+In addition, running processes as non-root users can also help with container isolation and prevent issues with conflicting file ownership and permissions between the host and container filesystems.
+
+To build the image, you can use:
+
+```bash
+$ docker build -f Dockerfile-as-gustavo -t mlflow_tracker_slim_as_gustavo .
+
+[+] Building 1.3s (12/12) FINISHED
+ => [internal] load build definition from Dockerfile-as-gustavo                                                                0.0s
+ => => transferring dockerfile: 27.82kB                                                                                        0.0s
+ => [internal] load .dockerignore                                                                                              0.0s
+ => => transferring context: 35B                                                                                               0.0s
+ => [internal] load metadata for docker.io/library/python:3.10-slim                                                            1.1s
+ => [1/7] FROM docker.io/library/python:3.10-slim@sha256:7b0a5cefbcdd085faa21533c21549e55a7e66f5aed40f8d1f4de13a017e352cd      0.0s
+ => [internal] load build context                                                                                              0.0s
+ => => transferring context: 37B                                                                                               0.0s
+ => CACHED [2/7] RUN apt-get update && apt-get -y upgrade     && pip install --upgrade pip     && pip --version                0.0s
+ => CACHED [3/7] RUN apt-get update && apt-get install -y procps     && rm -rf /var/lib/apt/lists/*                            0.0s
+ => CACHED [4/7] RUN groupadd mlflow && useradd --create-home -g mlflow gustavo                                                0.0s
+ => CACHED [5/7] WORKDIR /home/gustavo/mlflow/                                                                                 0.0s
+ => CACHED [6/7] COPY requirements.txt .                                                                                       0.0s
+ => CACHED [7/7] RUN pip install --no-cache-dir -r requirements.txt                                                            0.0s
+ => exporting to image                                                                                                         0.1s
+ => => exporting layers                                                                                                        0.0s
+ => => writing image sha256:e161ebd3ee28bee7f46840859960b9b249786bbaaf809fa6614f08d72c173fa2                                   0.0s
+ => => naming to docker.io/library/mlflow_tracker_slim_as_gustavo
+```
+
+I typically include the `--progress plain` and `--no-cache options`:
+
+```bash
+$ docker build -f Dockerfile-as-gustavo --progress plain --no-cache -t mlflow_tracker_slim_as_gustavo .
+```
+
+Find the complete log of this `docker build` at the end of the [`Dockerfile-as-gustavo`](./mlflow/Dockerfile-as-gustavo) file.
+
+As you can see, **we've opted for a specific username in the container instead of a generic `mlflowuser`**. It's important to note that **this new user must have the same name as the user on your Linux host who will be responsible for storing the artifacts**. This way, we'll be able to replicate the folder structure within the container that you (as the Linux user) typically use to store artifacts on your account locally. We'll delve into the reasons for this decision at a later point.
+
+### **2.3 An alternative Docker image: `Dockerfile-conda`**
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
+
+Using conda can be a great option for managing and deploying machine learning workflows. But be aware that the use of conda to package Python apps in Docker is a matter of debate and depends on the specific requirements of the application and its deployment environment.
+
+On one hand, conda can be a useful tool for managing Python dependencies and creating self-contained environments that can be easily packaged and deployed. When building a Docker image, using conda to create a virtual environment with the necessary dependencies can simplify the process of setting up the application and reduce the risk of dependency conflicts.
+
+One specific advantage of using Docker for MLflow is that it provides a level of abstraction between the application and the underlying system, which **can help with portability and reproducibility**. By packaging the MLflow server and its dependencies within a Docker container, you can ensure that the same software is running regardless of the host operating system or deployment environment.
+
+However, there are also some drawbacks to using conda within Docker containers. The biggest issue is that **conda packages can be quite large and can increase the size of the Docker image**, which can **slow down the deployment process**, **consume more disk space**, and **increase the surface attack**.
+
+```bash
+$ docker images
+REPOSITORY                        TAG      IMAGE ID        CREATED              SIZE
+mlflow_tracker_conda              latest   c97543ad42fb    10 minutes ago       2.47GB
+mlflow_tracker_slim_as_gustavo    latest   44bdb3cf61f6    About an hour ago    870MB
+mlflow_tracker_slim_as_root       latest   c80c138b84b8    2 hours ago          872MB
+```
+
+Overall, **deploying MLflow servers in Docker using conda can be a powerful and flexible option for managing machine learning workflows**. However, it's important to carefully consider the specific needs of the application and the deployment environment, and to ensure that the Docker container is properly configured and secured to avoid any potential security issues or performance bottlenecks. To reduce the surface attack, consider alternative approaches such as using pip to manage dependencies or using a lightweight base image to reduce the size of the Docker image, as proposed before. The specific needs of the application and its deployment environment should be taken into account when making this decision.
+
+```bash
+# Good practice: Use official base images
+#
+FROM continuumio/miniconda3:latest
+
+# Good practice: upgrade distro packages (with last security patches).
+#
+RUN apt-get update && apt-get -y upgrade \
+    && conda update -n base -c defaults conda \
+    && conda --version \
+    && conda info
+
+# Good practice: don't run things in containers as root.
+#
+RUN groupadd mlflow && useradd --create-home -g mlflow gustavo
+ENV PATH /home/gustavo/.local/bin:${PATH}
+
+# Good practice: install the app under the appuser home folder:
+#
+WORKDIR /home/gustavo
+
+# Copy the code to run when container is started
+#
+COPY ./entrypoint.sh .
+RUN chown gustavo ./entrypoint.sh \
+    && chmod u+x ./entrypoint.sh
+
+# From now on, this process is owned by gustavo:
+#
+USER gustavo
+
+# Create the environment:
+#
+COPY ./conda.yml .
+RUN conda env create -f conda.yml
+
+# We need to 'conda run' activating the env 'mlflow_env' before calling '/bin/bash ./entrypoint.sh':
+#
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "mlflow_env", "/bin/bash", "./entrypoint-conda-dev.sh"]
+
+```
+
+And this is the used [`conda.yml`](./mlflow/conda.yml) file:
+
+```yaml
+name: mlflow_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.9
+  - pip<=22.3.1
+  - pip:
+    - mlflow<3,>=2.1
+    - pymysql
+```
+
+To build the image, you can use:
+
+```bash
+$ docker build -f Dockerfile-conda -t mlflow_tracker_conda .
+
+[+] Building 154.7s (13/13) FINISHED
+ => [internal] load build definition from Dockerfile-conda                                                                                             0.0s
+ => => transferring dockerfile: 32.50kB                                                                                                                0.0s
+ => [internal] load .dockerignore                                                                                                                      0.1s
+ => => transferring context: 35B                                                                                                                       0.0s
+ => [internal] load metadata for docker.io/continuumio/miniconda3:latest                                                                               1.3s
+ => [internal] load build context                                                                                                                      0.0s
+ => => transferring context: 999B                                                                                                                      0.0s
+ => [1/8] FROM docker.io/continuumio/miniconda3:latest@sha256:10b38c9a8a51692838ce4517e8c74515499b68d58c8a2000d8a9df7f0f08fc5e                         0.0s
+ => CACHED [2/8] RUN apt-get update && apt-get -y upgrade     && conda update -n base -c defaults conda     && conda --version     && conda info       0.0s
+ => [3/8] RUN groupadd mlflow && useradd --create-home -g mlflow gustavo                                                                               0.7s
+ => [4/8] WORKDIR /home/gustavo                                                                                                                        0.1s
+ => [5/8] COPY ./entrypoint.sh .                                                                                                                       0.1s
+ => [6/8] RUN chown gustavo ./entrypoint.sh     && chmod u+x ./entrypoint.sh                                                                           0.5s
+ => [7/8] COPY ./conda.yml .                                                                                                                           0.1s
+ => [8/8] RUN conda env create -f conda.yml                                                                                                          141.1s
+ => exporting to image                                                                                                                                10.5s
+ => => exporting layers                                                                                                                               10.4s
+ => => writing image sha256:89ede2af3927b29636fcf15c0482f1e75298e13ed31c47ea4ed95caec4a3381f                                                           0.0s
+ => => naming to docker.io/library/mlflow_tracker_conda                                                                                                0.0s
+```
+
+To obtain more information about the building process and to ensure that cached layers are not used, I typically include the `--progress plain` and `--no-cache options` respectively:
+
+```bash
+$ docker build -f Dockerfile-conda --progress plain --no-cache -t mlflow_tracker_conda .
+```
+
+Find the complete log of this `docker build` at the end of the [`Dockerfile-conda`](./mlflow/Dockerfile-conda) file.
 
 ## 3. Using MariaDB as Tracking Backend Storage
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 In MLflow, `SQLAlchemyStore` is a class that provides an implementation of `AbstractStore`, an abstract base class for storing and managing artifacts and metadata produced during the machine learning lifecycle. The `SQLAlchemyStore` class is used to store tracking metadata in a SQL database using the **SQLAlchemy library**, which allows it to work with a variety of relational databases, including **`SQLite`** and **`MariaDB`/`MySQL`**.
 
 When using `SQLAlchemyStore`, MLflow automatically creates and manages the necessary database schema to store metadata and artifacts, making it easy to use with minimal configuration. It also supports transactional guarantees and concurrent access to metadata, ensuring consistency and reliability of data stored in the database.
 
-In previous issues, we have used `SQLite` to implement **Sncearios 2 and 3b**. However, `SQLite` may not be the best option in many cases. SQLite is a lightweight, file-based database management system, whereas MariaDB is a robust, scalable, and open-source relational database management system.
+In previous issues, we have used `SQLite` to implement **Sncearios 2 and 3b**. However, **`SQLite` may not be a viable option**. It's easy to be tempted to use the tools that are used in the examples of the documentation of many products, MLflow in our case. Typically, these tools are showcased to promote simplicity and clarity in demonstrating how to integrate them with the main product. However, it's important to note that these tools **may not always be the most optimal choice in real-world development environments and especially not in production settings**.
+
+If you're new to the world of databases, here's a quick comparison between SQLite and MariaDB for you. However, **if you're already familiar with these databases, feel free to skip this section**.
+
+SQLite is a lightweight, file-based database management system, whereas MariaDB is a robust, scalable, and open-source relational database management system.
 
 Here is a comparison table between SQLite and MariaDB as tracking backend storage in MLflow:
 
@@ -153,8 +378,8 @@ It is important to note that the choice between SQLite and MariaDB as the tracki
 
 To conclude this section, it's worth considering **MyphpAdmin** as an additional component to the stack of apps that could be dockerized along with MLflow o top of MariaDB. MyphpAdmin is a widely used web-based application that is often paired with MariaDB. It is designed to manage and administer MySQL or MariaDB databases through a graphical user interface. With MyphpAdmin, users can perform a range of database-related tasks, such as creating and deleting databases, managing tables and fields, executing SQL queries, and importing and exporting data. Within the scope of MLflow, this tool can be utilized to easily navigate and browse all the accumulated experiment data and perform SQL queries on the tracking database.
 
-## 4. Creating the Docker stack for MLflow
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+## 4. Creating a Docker stack for MLflow
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 The provided Docker Compose file defines the setup for a stack consisting of three services: `mysql`, `phpmyadmin`, and `mlflow`.
 
@@ -210,9 +435,12 @@ services:
     mlflow:
         build:
           context: ./mlflow
-          dockerfile: Dockerfile                 # to build a root image with a system pip install of mlflow
+          #dockerfile: Dockerfile-as-root        # to build a root image with a system pip install of mlflow.
+          dockerfile: Dockerfile-as-gustavo      # to build a non-root image with a system pip install of mlflow
           #dockerfile: Dockerfile-conda          # to build a non-root image with a tailored conda env for mlflow
-        image: mlflow_tracker_slim
+        #image: mlflow_tracker_slim_as_root      # This image does NOT provide Artifact management.
+        image: mlflow_tracker_slim_as_gustavo
+        #image: mlflow_tracker_conda             # This image may be unnecessarily large.
         container_name: mlflow_tracker_${MLFLOW_PORT}
         hostname: mlflow_phpmyadmin_${MLFLOW_PORT}
         #restart: unless-stopped
@@ -225,9 +453,11 @@ services:
             - ${MLFLOW_PORT}:5000
         volumes:
             # Artifact store locally available through folder mapping:
-            - ./mlflow:/mlflow
+            - /home/gustavo/mlflow:/home/gustavo/mlflow                                                  # --> Replicate folder structure in the host and in the container
+                                                                                                         #     and map those two folders to have a working Artifact Storage.
+            # - /home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab/mlflow:/home/mlflowuser/mlflow/    --> This will NOT work
         #command: ./entrypoint.sh                # replaces the CMD line in Dockerfile
-        command: ./entrypoint-pip-dev.sh         # only for the image built with Dockerfile
+        command: ./entrypoint-pip-dev.sh         # only for the image built with Dockerfile-as-root or Dockerfile-as-gustavo
         #command: ./entrypoint-conda-dev.sh      # only for the image built with Dockerfile-conda
 
 volumes:
@@ -378,7 +608,7 @@ $ source ./stack_remove
 ```
 
 ## 5. Dockerized Scenario 3b: MLflow Client + Dockerized HTTP Tracking server ('MLFLOW_TRACKING_URI="http://localhost:5005"')
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 In this scenario:
 
@@ -449,7 +679,7 @@ We have the same two examples as before:
 
 
 ### **5.1 Set HTTP Tracking server's 'Backend store' and the MLflow Client's 'Artifacts store'**
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 To set your backend and artifacts stores:
 
@@ -473,7 +703,7 @@ To set your backend and artifacts stores:
   ```
 
 ### **5.2 Launch a new Dockerized MLflow Tracking server (Scenario 3b)**
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 Open **terminal 2** and run:
 
@@ -491,9 +721,9 @@ $ source ./stack_deploy
 NOTE: If the volume `3_mlflow_tracking_server_in_docker_database_volume` is still there, it will be reused. If not, a new volume is created and the process db file creation and db contents migration is executed again.
 
 ### **5.3 The 'quickstart' example under Scenario 3b**
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-Move to **terminal 3**. The mlflow conda env should be still activated, and the working directory should be `lab3/mlflow`.
+Move to **terminal 3**. The mlflow conda env should be still activated, and the working directory should be `lab3`.
 
 Under this folder run `mlflow_tracking.py` again, but this time change the `MLFLOW_TRACKING_URI` as in the following code:
 
@@ -501,16 +731,20 @@ Under this folder run `mlflow_tracking.py` again, but this time change the `MLFL
 $ conda activate mlflow
 (mlflow)$
 (mlflow)$ export MLFLOW_TRACKING_URI="http://localhost:5005"
-(mlflow)$ export
 (mlflow)$
-(mlflow)$ python ../examples/quickstart/mlflow_tracking.py
-#  python my_mlflow_client.py --default-artifact-root /client/path/to/artifact/store
-(mlflow)$ python examples/quickstart/mlflow_tracking.py --default-artifact-root /home/gustavo/training/GitHub/Training.MLOps.MLFlow/3_MLflow_Tracking_Server_in_Docker/mlflow/mlruns
+(mlflow)$ python ./examples/quickstart/mlflow_tracking.py
+Process ID: 8118
+Process Name: python
+Process Status: R (running)
+Process UID: 1000
+Process Owner: gustavo
 Current tracking uri: http://localhost:5005
-Current working directory: /home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3/mlflow
-Temporal directory 'examples/quickstart/outputs' created
-Artifacts in 'examples/quickstart/outputs' tracked!
-Temporal directory 'examples/quickstart/outputs' has been removed successfully
+Current artifact store uri: file:///home/gustavo/mlflow/mlruns/1
+Current working directory: /home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3
+Temporal directory '/home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3/examples/quickstart/outputs' created
+Tracked artifacts in temp 'examples/quickstart/outputs' folder!
+Artifacts full path: file:///home/gustavo/mlflow/mlruns/0/c38ace2a2b7b4a239246f7639ef940c6/artifacts
+Temporal directory '/home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3/examples/quickstart/outputs' has been removed successfully
 ```
 
 Have a look at the **'MLflow UI server'** to see how it played out!
@@ -523,10 +757,10 @@ Once again, we have managed to track parameters, metrics and a dummy artifact 't
 
 
 ## 6. Building a non-root Docker image for MLflow and installing depencies with conda
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 
 
 ## 7. Summary
-[Go to Index](#3-move-your-mlflow-tracking-server-to-docker)
+[Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
