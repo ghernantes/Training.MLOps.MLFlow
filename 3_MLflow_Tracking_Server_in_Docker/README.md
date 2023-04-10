@@ -2,33 +2,42 @@
 [Go to Root Index](../README.md)
 
 - [1. Introduction](./README.md#1-introduction)
-    - [1.1 Scenarios 3 and 3b](./README.md#11-scenarios-3-y-3b)
+    - [1.1 What is Scenario 3b](./README.md#11-what-is-scenario-3b)
     - [1.2 What are the Benefits of Dockerizing an MLflow Tracking Server?](./README.md#12-what-are-the-benefits-of-dockerizing-an-mlflow-tracking-server)
-- [2. Building a basic Docker image for MLflow](./README.md#2-building-a-basic-docker-image-for-mlflow)
+- [2. Building a basic Docker image for MLflow](./README.md#2-building-a-docker-image-for-mlflow)
     - [2.1 A basic Docker image: `Dockerfile-as-root`](./README.md#21-a-basic-docker-image-dockerfile-as-root)
     - [2.2 A better Docker image: `Dockerfile-as-user`](./README.md#22-a-better-docker-image-dockerfile-as-user)
     - [2.3 An alternative Docker image: `Dockerfile-conda`](./README.md#23-an-alternative-docker-image-dockerfile-conda)
 - [3. Using MariaDB as Tracking Backend Storage](./README.md#3-using-mariadb-as-tracking-backend-storage)
-- [4. Creating a Docker stack for MLflow](./README.md#4-creating-a-docker-stack-for-mlflow)
+- [4. A Docker stack for MLflow](./README.md#4-a-docker-stack-for-mlflow)
 - [5. Dockerized Scenario 3b: MLflow Client + Dockerized HTTP Tracking server ('MLFLOW_TRACKING_URI="http://localhost:5005"'](./README.md#5-dockerized-scenario-3b-mlflow-client--dockerized-http-tracking-server-mlflow_tracking_urihttplocalhost5005)
     - [5.1 Set HTTP Tracking server's 'Backend store' and the MLflow Client's 'Artifacts store'](./README.md#51-set-http-tracking-servers-backend-store-and-the-mlflow-clients-artifacts-store)
     - [5.2 Launch a new Dockerized MLflow Tracking server (Scenario 3b)](./README.md#52-launch-a-new-dockerized-mlflow-tracking-server-scenario-3b)
     - [5.3 The 'quickstart' example under Scenario 3b](./README.md#53-the-quickstart-example-under-scenario-3b)
-- [6. Building a non-root Docker image for MLflow and installing depencies with conda](./README.md#6-building-a-non-root-docker-image-for-mlflow-and-installing-depencies-with-conda)
+- [6. How MLflow records the path to the artifact store for each experiment](./README.md#6-how-mlflow-records-the-path-to-the-artifact-store-for-each-experiment)
 - [7. Summary](./README.md#7-summary)
 
 You can access the article code on the following GitHub repository:
 
 [https://github.com/ghernantes/Training.MLOps.MLFlow/blob/main/3_MLflow_Tracking_Server_in_Docker](https://github.com/ghernantes/Training.MLOps.MLFlow/blob/main/2_MLFlow_Backend_and_Artifact_Storage_Scenarios_1_2_and_3)
 
-<img src='./examples/quickstart/img/Mr_robot_presenting_the_basic_scenarios_of_MLflow.png' alt='' width='800'>
+<img src='./examples/quickstart/img/Minibot_loading_a_new_model.png' alt='' width='800'>
+<p> Minibot loading a new model. Another Stable Diffusion digital art.</p>
 
 ## 1. Introduction.
 
-### **1.1 Scenarios 3 y 3b**
+### **1.1 What is Scenario 3b**
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-<img src='./examples/quickstart/img/scenario_3.png' alt='' width='480'> <img src='./examples/quickstart/img/scenario_3b.png' alt='' width='480'>
+In this article, I will show how to easily **dockerize the tracking server and database for MLflow**:
+
+<img src='./examples/quickstart/img/scenario_3b.png' alt='' width='600'>
+
+It's worth noting that this **is not an MLflow official scenario**. I refer to it as "Scenario 3b," and while it's not part of the official documentation, **I find it useful and often use it in my local training sessions**. It is an intermediate step towards an "Scenario 4" implementation where all artifacts are stored in an Azure Blob Storage, which I will cover in the next article.
+
+In this scenario, as I will explain later, it's important to use the same path for **Artifact Storage** in both the container and locally, and to [Bind mount](https://docs.docker.com/storage/bind-mounts/) them so that the server can find the stored artifacts in the same path as the client.
+
+If you prefer not to or cannot use any remote storage for your artifacts, but still want to take advantage of a dockerized tracking server, then this could be the perfect solution for you.
 
 ### **1.2 What are the Benefits of Dockerizing an MLflow Tracking Server?**
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
@@ -146,7 +155,7 @@ Find the complete log of this `docker build` at the end of the [`Dockerfile-as-r
 ### **2.2 A better Docker image: `Dockerfile-as-user`**
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-In this updated version, the mlflow server will not operate under the root user within the container. Instead, it will run as a new user.
+In this updated version, the MLflow server will not operate under the root user within the container. Instead, it will run as a custom user.
 
 ```Dockerfile
 # Good practice: Use official base images
@@ -232,13 +241,15 @@ As you can see, **we've opted for a specific username in the container instead o
 ### **2.3 An alternative Docker image: `Dockerfile-conda`**
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-Using conda can be a great option for managing and deploying machine learning workflows. But be aware that the use of conda to package Python apps in Docker is a matter of debate and depends on the specific requirements of the application and its deployment environment.
+Using `conda` can be a great option for managing and deploying machine learning workflows. But be aware that the use of conda to package Python apps in Docker is a matter of debate and depends on the specific requirements of the application and its deployment environment.
 
 On one hand, conda can be a useful tool for managing Python dependencies and creating self-contained environments that can be easily packaged and deployed. When building a Docker image, using conda to create a virtual environment with the necessary dependencies can simplify the process of setting up the application and reduce the risk of dependency conflicts.
 
 One specific advantage of using Docker for MLflow is that it provides a level of abstraction between the application and the underlying system, which **can help with portability and reproducibility**. By packaging the MLflow server and its dependencies within a Docker container, you can ensure that the same software is running regardless of the host operating system or deployment environment.
 
 However, there are also some drawbacks to using conda within Docker containers. The biggest issue is that **conda packages can be quite large and can increase the size of the Docker image**, which can **slow down the deployment process**, **consume more disk space**, and **increase the surface attack**.
+
+Our `mlflow_tracker_conda` docker image weighs `2.47GB`:
 
 ```bash
 $ docker images
@@ -348,7 +359,7 @@ In MLflow, `SQLAlchemyStore` is a class that provides an implementation of `Abst
 
 When using `SQLAlchemyStore`, MLflow automatically creates and manages the necessary database schema to store metadata and artifacts, making it easy to use with minimal configuration. It also supports transactional guarantees and concurrent access to metadata, ensuring consistency and reliability of data stored in the database.
 
-In previous issues, we have used `SQLite` to implement **Sncearios 2 and 3b**. However, **`SQLite` may not be a viable option**. It's easy to be tempted to use the tools that are used in the examples of the documentation of many products, MLflow in our case. Typically, these tools are showcased to promote simplicity and clarity in demonstrating how to integrate them with the main product. However, it's important to note that these tools **may not always be the most optimal choice in real-world development environments and especially not in production settings**.
+In previous issues, we have used `SQLite` to implement **Scnearios 2 and 3**. However, **`SQLite` may not be a viable option**. It's easy to be tempted to use the tools that are used in the examples of the documentation of many products, MLflow in our case. Typically, these tools are showcased to promote simplicity and clarity in demonstrating how to integrate them with the main product. However, it's important to note that these tools **may not always be the most optimal choice in real-world development environments and especially not in production settings**.
 
 If you're new to the world of databases, here's a quick comparison between SQLite and MariaDB for you. However, **if you're already familiar with these databases, feel free to skip this section**.
 
@@ -356,7 +367,7 @@ SQLite is a lightweight, file-based database management system, whereas MariaDB 
 
 Here is a comparison table between SQLite and MariaDB as tracking backend storage in MLflow:
 
-| Feature     | SQLite	                                                              | MariaDB              |
+| Feature     | SQLite	                                                              | MariaDB/MySQL              |
 |---          |---                                                                    |---                   |
 | Scalability	| Limited	                                                              | Highly scalable |
 | Concurrency/Reliability |	Limited, may lead to data corruption in high concurrency environments	| Optimized for high concurrency |
@@ -378,14 +389,14 @@ It is important to note that the choice between SQLite and MariaDB as the tracki
 
 To conclude this section, it's worth considering **MyphpAdmin** as an additional component to the stack of apps that could be dockerized along with MLflow o top of MariaDB. MyphpAdmin is a widely used web-based application that is often paired with MariaDB. It is designed to manage and administer MySQL or MariaDB databases through a graphical user interface. With MyphpAdmin, users can perform a range of database-related tasks, such as creating and deleting databases, managing tables and fields, executing SQL queries, and importing and exporting data. Within the scope of MLflow, this tool can be utilized to easily navigate and browse all the accumulated experiment data and perform SQL queries on the tracking database.
 
-## 4. Creating a Docker stack for MLflow
+## 4. A Docker stack for MLflow
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-The provided Docker Compose file defines the setup for a stack consisting of three services: `mysql`, `phpmyadmin`, and `mlflow`.
+The following Docker Compose file defines the setup for a stack consisting of three services: `mysql`, `phpmyadmin`, and `mlflow`.
 
 - The **`mysql`** service: uses the MariaDB 10.3 image and defines a container name and hostname using environment variables. It also specifies a password file for the root user and mlflow user, both of which are stored as secrets. The service is exposed through two ports, one for MySQL and one for the MySQL admin interface. The database data is stored in a volume mapped to `/var/lib/mysql`.
 - The **`phpmyadmin`** service: uses the latest version of the phpMyAdmin image and depends on the `mysql` service. It also defines a container name and hostname using an environment variable, and exposes a port for the phpMyAdmin web interface. The service sets the `PMA_HOST` environment variable to the name of the `mysql` service and specifies the password file for the root user.
-- The **`mlflow`** service: builds a custom image from a Dockerfile located in the `./mlflow` directory. It also specifies a container name and hostname using an environment variable, and depends on the `mysql` service. The service is exposed through a port, and the `./mlflow` directory is mounted as a volume to get access to stored MLflow artifacts. The service also specifies a custom command to be executed on container startup using the `entrypoint-pip-dev.sh` script.
+- The **`mlflow`** service: builds a custom image from a Dockerfile located in the `./mlflow` directory. It also specifies a container name and hostname using an environment variable, and depends on the `mysql` service. The service is exposed through a port, and the `/home/gustavo/mlflow` directory is mounted as a [bind mount](https://docs.docker.com/storage/bind-mounts/) to get access to all locally stored MLflow artifacts. The service also specifies a custom command to be executed on container startup using the `entrypoint-pip-dev.sh` script.
 
 The contents of the `docker-compose.yml` file are:
 
@@ -623,7 +634,7 @@ In this scenario:
           - the **Backend Store** is in a MariaDB database (Scenario 3b)
     - artifact serving is disabled (by using `--no-serve-artifacts` option)
 
-In this article/lab, you can practice the 3b basic scenario explained in the previous issue, but dockerized. To do that, create your own `project/poc` folder, and `cd` into it. I recommend that you make a copy of the [3_MLflow_Tracking_Server_in_Docker repository folder](https://github.com/ghernantes/Training.MLOps.MLFlow/tree/main/3_MLflow_Tracking_Server_in_Docker) and follow along with the article's hands-on exercises. For brevity, I will refer to the copied folder as **`lab3`**.
+In this article/lab, you can practice the dockerized 3b basic scenario explained in this issue. To do that, create your own `project/poc` folder, and `cd` into it. I recommend that you make a copy of the [3_MLflow_Tracking_Server_in_Docker repository folder](https://github.com/ghernantes/Training.MLOps.MLFlow/tree/main/3_MLflow_Tracking_Server_in_Docker) and follow along with the article's hands-on exercises. For brevity, I will refer to the copied folder as **`lab3`**.
 
 Open three different terminals under `lab3`:
 
@@ -723,7 +734,7 @@ NOTE: If the volume `3_mlflow_tracking_server_in_docker_database_volume` is stil
 ### **5.3 The 'quickstart' example under Scenario 3b**
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-Move to **terminal 3**. The mlflow conda env should be still activated, and the working directory should be `lab3`.
+Move to **terminal 3**. The `mlflow` conda env should be activated, and the working directory should be `lab3`.
 
 Under this folder run `mlflow_tracking.py` again, but this time change the `MLFLOW_TRACKING_URI` as in the following code:
 
@@ -749,18 +760,47 @@ Temporal directory '/home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3/exa
 
 Have a look at the **'MLflow UI server'** to see how it played out!
 
-<img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario3_runs_list.png' alt='' width='1000'>
+<img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario3b_runs_list.png' alt='' width='1000'>
 
-<img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario3_first_run_details.png' alt='' width='1000'>
+Once again, we have managed to track parameters, metrics and a dummy artifact 'test.txt':
 
-Once again, we have managed to track parameters, metrics and a dummy artifact 'test.txt'.
+<img src='./examples/quickstart/img/mlflow_ui_quickstart_scenario3b_first_run_details.png' alt='' width='1000'>
 
-
-## 6. Building a non-root Docker image for MLflow and installing depencies with conda
+## 6. How MLflow records the path to the artifact store for each experiment
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
+MLflow records an URI to the artifact store for each experiment by creating an artifact repository for each run, and storing the URI to the repository in the MLflow server. When an artifact is logged using MLflow, it is saved by the client in the artifact repository associated with the current run. The URI to the artifact store is specified by setting the `DEFAULT_ARTIFACT_ROOT` server environment variable, or by passing the `--default-artifact-root` flag to the mlflow server command, and the client gets that URI by asking the server. The client knows what tracking server to ask thanks to the `MLFLOW_TRACKING_URI` client's environment variable.
+
+The ability to record the URI to the artifact store for each experiment is important in scenarios where the tracking server and client are running on different machines, as it allows both, the client and the server, to locate and retrieve artifacts associated with a particular experiment.
+
+If the kind of URI to the artifact store is a folder path, and client and server are in two different machines, then we are dealing with paths in two different file systems. When the server reports to the client its path to the artifact store (as it was recorded in the experiment properties in the server database), it can potentially report an invalid path for the client and it can cause issues with accessing the artifacts. This is the case for our client and server in Scenario 3b, and the reason why this is not an official scenario.
+
+The good news is that you can easily overcome these potential issues. You just need to ensure that the client and server are both directed to the same artifacts folder by forcing them to use the exact same artifacts folder path and - thanks to Docker - by bind mounting this two folders. Note that you will only need set the environment variable for the artifact store path on the server. The only way the client will correctly get that folder path by asking the server.  
+
+In our example we have used a single route `/home/gustavo/mlflow` in both, the client and the dockerized server, and then bind mounted this two folders in the `docker-compose.yml` file:
+
+```yaml
+version: '3.9'
+services:
+    mysql:
+        ...
+    phpmyadmin:
+        ...
+    mlflow:
+        ...
+        volumes:
+            - /home/gustavo/mlflow:/home/gustavo/mlflow
+```
+
+A more general solution to address this scenario is to use a shared network file system, such as NFS, or a distributed file system like Hadoop Distributed File System (HDFS) or GlusterFS. By doing so, you eliminate the need for paths on different file systems, as now both the client and server would be using the same shared file system. This ensures that the artifact store is easily accessible by both the client and server, without any issues related to different file systems.
+
+Additionally, you can also configure MLflow to use a cloud-based storage solution like Azure Blob Storage or Amazon S3, which would eliminate the need for coordinating file systems as we have shown here
 
 
 ## 7. Summary
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
+
+In this article, we've explored the Scenario 3b, a use case for MLflow in which the tracking server and client are potentially running on different machines, with the server in a docker host. We've shown how to build a basic Docker image for MLflow, as well as a better Docker image that runs as a non-root user and an alternative Docker image that uses Conda. We've also demonstrated how to use MariaDB/MySQL as a tracking backend storage and how to create a Docker stack for MLflow. We've covered how to run Scenario 3b by setting the HTTP tracking server's backend store and the MLflow client's artifacts store, launched a new Dockerized MLflow tracking server, and used the 'quickstart' example. Finally, we've discussed how MLflow records the path to the artifact store for each experiment and why that's important in Scenario 3b.
+
+Stay tuned for the next issue where we will discuss how to migrate your Artifact Store to an emulated Azure Blob Storage running locally and a real one in the cloud.
 
