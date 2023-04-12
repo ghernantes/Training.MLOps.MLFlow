@@ -645,42 +645,50 @@ Open three different terminals under `lab3`:
 Let's inspect `lab3` folder. On **terminal 1** under `lab3`, run `tree .`:
 
 ```bash
-$ tree .
+$ tree -a .
 .
+├── .env
+├── .gitignore
 ├── .secrets
 │   ├── env-secrets
 │   ├── mysql-mlflowuser-password.txt
 │   └── mysql-root-password.txt
+├── README.md
+├── docker-compose.yml
 ├── examples
-│   ├── quickstart
+│   ├── palmer_pinguins
+│   │   ├── .gitignore
+│   │   ├── data
+│   │   │   └── penguins_classification.csv
 │   │   ├── img
 │   │   │   ├── ...
-│   │   └── mlflow_tracking.py
-│   └── palmer_pinguins
-│       ├── data
-│       │   └── penguins_classification.csv
+│   │   └── notebooks
+│   │       └── 1_Run_and_track_experiments.ipynb
+│   └── quickstart
 │       ├── img
 │       │   ├── ...
-│       └── notebooks
-│           ├── 1_Run_and_track_experiments.ipynb
-│           ├── 2_Deploy_and_manage.ipynb
-│           └── 3_Tips_and_tricks.ipynb
+│       ├── mlflow_tracking.py
+│       └── utils
+│           ├── __init__.py
+│           ├── __pycache__
+│           │   ├── __init__.cpython-310.pyc
+│           │   └── process_info.cpython-310.pyc
+│           └── process_info.py
 ├── mlflow
 │   ├── .dockerignore
-│   ├── conda.yml
-│   ├── Dockerfile
+│   ├── Dockerfile-as-gustavo
+│   ├── Dockerfile-as-root
 │   ├── Dockerfile-conda
+│   ├── conda.yml
 │   ├── entrypoint-conda-dev.sh
 │   ├── entrypoint-pip-dev.sh
 │   ├── entrypoint.sh
 │   └── requirements.txt
-├── .env
-├── .gitignore
-├── docker-compose.yml
-├── README.md
 ├── show_all.sh
 ├── stack_deploy.sh
 └── stack_remove.sh
+
+11 directories, 60 files
 ```
 
 We have the same two examples as before:
@@ -750,11 +758,12 @@ Process Status: R (running)
 Process UID: 1000
 Process Owner: gustavo
 Current tracking uri: http://localhost:5005
+INFO mlflow.tracking.fluent: Experiment with name 'quickstart' does not exist. Creating a new experiment.
 Current artifact store uri: file:///home/gustavo/mlflow/mlruns/1
 Current working directory: /home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3
 Temporal directory '/home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3/examples/quickstart/outputs' created
 Tracked artifacts in temp 'examples/quickstart/outputs' folder!
-Artifacts full path: file:///home/gustavo/mlflow/mlruns/0/c38ace2a2b7b4a239246f7639ef940c6/artifacts
+Artifacts full path: file:///home/gustavo/mlflow/mlruns/1/69ca60ea050d4f3481eac66e4a48fbf2/artifacts
 Temporal directory '/home/gustavo/training/GitHub/Training.MLOps.MLFlow/lab3/examples/quickstart/outputs' has been removed successfully
 ```
 
@@ -769,13 +778,37 @@ Once again, we have managed to track parameters, metrics and a dummy artifact 't
 ## 6. How MLflow records the path to the artifact store for each experiment
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
-MLflow records an URI to the artifact store for each experiment by creating an artifact repository for each run, and storing the URI to the repository in the MLflow server. When an artifact is logged using MLflow, it is saved by the client in the artifact repository associated with the current run. The URI to the artifact store is specified by setting the `DEFAULT_ARTIFACT_ROOT` server environment variable, or by passing the `--default-artifact-root` flag to the mlflow server command, and the client gets that URI by asking the server. The client knows what tracking server to ask thanks to the `MLFLOW_TRACKING_URI` client's environment variable.
+MLflow records an URI to the artifact store for each experiment by creating an artifact repository for each run, and storing the URI to the repository in the MLflow server. 
+
+See the column `artifact_location` in the `experiments` table in the MLflow server database:
+
+<img src='./examples/quickstart/img/quickstart_experiment_artifacts_location.png' alt='' width='1000'>
+
+When an artifact is logged using MLflow, it is saved by the client in the artifact repository associated with the current run. The URI to the artifact store is specified by setting the `DEFAULT_ARTIFACT_ROOT` server environment variable, or by passing the `--default-artifact-root` flag to the mlflow server command, and the client gets that URI by asking the server. The client knows what tracking server to ask thanks to the `MLFLOW_TRACKING_URI` client's environment variable.
+
+In our Scenario 3b, once the client has been instructed to use the MLflow HTTP tracking server, it will ask the server for the URI to the artifact store. The server will respond with the URI to the artifact store that was recorded in the experiment properties in the server database. This URI is the one that was set by the `--default-artifact-root` flag when the server was launched.
+
+Then, the client tracks the artifacts for the current run locally in the `mlruns` folder:
+
+```bash
+$ tree /home/gustavo/mlflow/mlruns
+
+/home/gustavo/mlflow/mlruns
+└── 1
+    └── 69ca60ea050d4f3481eac66e4a48fbf2
+        └── artifacts
+            └── test.txt
+```
+
+and the server will record the URI to the artifact store for this particular run in the database:
+
+<img src='./examples/quickstart/img/quickstart_first_run_artifacts_location.png' alt='' width='1000'>
 
 The ability to record the URI to the artifact store for each experiment is important in scenarios where the tracking server and client are running on different machines, as it allows both, the client and the server, to locate and retrieve artifacts associated with a particular experiment.
 
-If the kind of URI to the artifact store is a folder path, and client and server are in two different machines, then we are dealing with paths in two different file systems. When the server reports to the client its path to the artifact store (as it was recorded in the experiment properties in the server database), it can potentially report an invalid path for the client and it can cause issues with accessing the artifacts. This is the case for our client and server in Scenario 3b, and the reason why this is not an official scenario.
+If the kind of URI to the artifact store **is a folder path**, and client and server are in two different machines, **then we are dealing with paths in two different file systems**. When the server reports to the client its path to the artifact store (as it was recorded in the experiment properties in the server database), it can potentially report an invalid path for the client and it can cause issues with accessing the artifacts. This is the case for our client and server in Scenario 3b, and possibly the reason why this is not an official scenario.
 
-The good news is that you can easily overcome these potential issues. You just need to ensure that the client and server are both directed to the same artifacts folder by forcing them to use the exact same artifacts folder path and - thanks to Docker - by bind mounting this two folders. Note that you will only need set the environment variable for the artifact store path on the server. The only way the client will correctly get that folder path by asking the server.  
+**The good news is that you can easily overcome these potential issues**. You just need to ensure that the client and server are both directed to the same artifacts folder by forcing them to use the **exact same artifacts folder path route** and - thanks to Docker - by **bind mounting this two folders**. Note that you will only need set the environment variable for the artifact store path on the server. The only way the client will correctly get that folder path by asking the server.  
 
 In our example we have used a single route `/home/gustavo/mlflow` in both, the client and the dockerized server, and then bind mounted this two folders in the `docker-compose.yml` file:
 
@@ -792,15 +825,13 @@ services:
             - /home/gustavo/mlflow:/home/gustavo/mlflow
 ```
 
-A more general solution to address this scenario is to use a shared network file system, such as NFS, or a distributed file system like Hadoop Distributed File System (HDFS) or GlusterFS. By doing so, you eliminate the need for paths on different file systems, as now both the client and server would be using the same shared file system. This ensures that the artifact store is easily accessible by both the client and server, without any issues related to different file systems.
+A more general solution to address this scenario is **to use a shared network file system**, such as NFS, or a distributed file system like Hadoop Distributed File System (HDFS) or GlusterFS. By doing so, you eliminate the need for paths on different file systems, as now both the client and server would be using the same shared file system. This ensures that the artifact store is easily accessible by both the client and server, without any issues related to different file systems.
 
-Additionally, you can also configure MLflow to use a cloud-based storage solution like Azure Blob Storage or Amazon S3, which would eliminate the need for coordinating file systems as we have shown here
-
+Additionally, **you can also configure MLflow to use a cloud-based storage solution like Azure Blob Storage or Amazon S3**, which would eliminate the need for coordinating file systems as we have shown here.
 
 ## 7. Summary
 [Go to Index](./README.md#3-move-your-mlflow-tracking-server-to-docker)
 
 In this article, we've explored the Scenario 3b, a use case for MLflow in which the tracking server and client are potentially running on different machines, with the server in a docker host. We've shown how to build a basic Docker image for MLflow, as well as a better Docker image that runs as a non-root user and an alternative Docker image that uses Conda. We've also demonstrated how to use MariaDB/MySQL as a tracking backend storage and how to create a Docker stack for MLflow. We've covered how to run Scenario 3b by setting the HTTP tracking server's backend store and the MLflow client's artifacts store, launched a new Dockerized MLflow tracking server, and used the 'quickstart' example. Finally, we've discussed how MLflow records the path to the artifact store for each experiment and why that's important in Scenario 3b.
 
-Stay tuned for the next issue where we will discuss how to migrate your Artifact Store to an emulated Azure Blob Storage running locally and a real one in the cloud.
-
+Stay tuned for the next issue where we will discuss how to migrate your Artifact Store to an emulated Azure Blob Storage running locally and to a real one in the cloud.
